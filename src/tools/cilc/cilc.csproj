@@ -59,4 +59,10 @@
     <Compile Include="Util\CecilHelpers.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\class\Cirrus_Fibers.csproj">
+      <Project>{67F63710-B4CB-4507-90C9-0987310A32A8}</Project>
+      <Name>Cirrus_Fibers</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
