@@ -8,10 +8,10 @@ Currently, I am releasing the concurrency core of Cirrus which implements [fiber
 Build Instructions
 ------------------
 
-1. You'll need to clone the following Git repositories:
-	* git://github.com/nirvanai/Cirrus.git
-	* git://github.com/jbevain/cecil.git
-	* git://github.com/mono/monodevelop.git
+1. Clone the following Git repositories, like so:
+	* git clone git://github.com/nirvanai/Cirrus.git
+	* git clone git://github.com/jbevain/cecil.git
+	* git clone -b cecil-light git://github.com/jbevain/monodevelop.git
 2. Compile Mono.Cecil from the second repo above and Cecil.Decompiler from the third (monodevelop/main/contrib/Mono.Cecil/Cecil.Decompiler) using MonoDevelop, Visual Studio or xbuild/msbuild.
 3. Drop Mono.Cecil.dll and Cecil.Decompiler.dll in src/tools/cilc and compile Cirrus using your favorite build tool. A post-build hook should set up for MonoDevelop, but if you are using another tool, or just to be safe, you should run cilc.exe on Cirrus.dll after each build.
 
@@ -21,8 +21,8 @@ On the To Do List:
 1. Support for try...catch...finally blocks in async methods.
 2. Make FutureCollection&lt;T&gt; explicitly implement IEnumerable&lt;T&gt; and support Linq (AsyncLinq?)
 3. Make the post-compiler fix up sequence points to ease debugging pains in instrumented assemblies.
-4. Tests, tests, tests!
-...
+4. An easy way to get a Future for an event.
+5. Tests, tests, tests!
 
 
 License and Contributions
