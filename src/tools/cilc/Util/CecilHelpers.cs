@@ -58,37 +58,30 @@ namespace Cirrus.Tools.Cilc.Util {
 		// Returns the first instruction in the chain of instructions ultimately responsible for the last item that
 		//  will be on the stack when the specified instruction is executed.
 		// This effectively allows you to insert instructions to push items stack penultimate
-		public static Instruction FindLastStackItem (this ControlFlowGraph cfg, InstructionBlock block, Instruction current)
+		public static IEnumerable<Instruction> FindLastStackItem (this ControlFlowGraph cfg, InstructionBlock block, Instruction current)
 		{
 			return cfg.FindLastStackItem (block, current, i => false);	
 		}
 		
 		// isBarrier allows you to specify Instructions that you cannot preceed in the stack walk (i.e. continuations :) 
-		public static Instruction FindLastStackItem (this ControlFlowGraph cfg, InstructionBlock block, Instruction current, Func<Instruction, bool> isBarrier)
+		public static IEnumerable<Instruction> FindLastStackItem (this ControlFlowGraph cfg, InstructionBlock block, Instruction current, Func<Instruction, bool> isBarrier)
 		{
-			Instruction inst;
-			var stackHeight = cfg.GetData (current).StackBefore;
-			
-			do { 
-				inst = cfg.FindStackHeight (block, current, --stackHeight, isBarrier);
-			} while (inst.OpCode == OpCodes.Dup);
-			
-			return inst;
+			return cfg.FindStackHeight (block, current, cfg.GetData (current).StackBefore - 1, isBarrier);
 		}
 		
-		// Finds the most recent instruction (relative to passed instruction) before which the stack height is as specified
-		public static Instruction FindStackHeight (this ControlFlowGraph cfg, InstructionBlock block, Instruction current, int stackHeight)
+		// Finds the most recent instructions (relative to passed instruction) before which the stack height is as specified
+		public static IEnumerable<Instruction> FindStackHeight (this ControlFlowGraph cfg, InstructionBlock block, Instruction current, int stackHeight)
 		{
 			return cfg.FindStackHeight (block, current, stackHeight, i => false);	
 		}
 		
 		// isBarrier allows you to specify Instructions that you cannot preceed in the stack walk (i.e. continuations :) 
-		public static Instruction FindStackHeight (this ControlFlowGraph cfg, InstructionBlock block, Instruction current, int stackHeight, Func<Instruction, bool> isBarrier)
+		public static IEnumerable<Instruction> FindStackHeight (this ControlFlowGraph cfg, InstructionBlock block, Instruction current, int stackHeight, Func<Instruction, bool> isBarrier)
 		{
 			
 			while (cfg.GetData (current).StackBefore > stackHeight) {
 				if (current == block.First) {
-					return cfg.GetPredecessors (block).Select (b => cfg.FindStackHeight (b, b.Last, stackHeight, isBarrier)).Distinct ().Single ();
+					return cfg.GetPredecessors (block).Select (b => cfg.FindStackHeight (b, b.Last, stackHeight, isBarrier)).Collapse ().Distinct ();
 				} else
 					current = current.Previous;
 				
@@ -96,34 +89,12 @@ namespace Cirrus.Tools.Cilc.Util {
 					break;
 			}
 			
-			return current;
-		}
-/*		
-		// FIXME: This may not work with complex subgraphs.. look for the "Help!"
-		public static InstructionBlock ConvergePredecessors (this ControlFlowGraph cfg, InstructionBlock block)
-		{
-			return ConvergePredecessors (cfg, block, new HashSet<InstructionBlock> ());	
-		}
-		public static InstructionBlock ConvergePredecessors (this ControlFlowGraph cfg, InstructionBlock block, HashSet<InstructionBlock> preventCycles)
-		{
-			preventCycles.Add (block);
-			var predecessors = cfg.GetPredecessors (block).Where (p => !preventCycles.Contains(p));
-			if (predecessors.Count () == 1)
-				return predecessors.First ();
+			if (current.OpCode == OpCodes.Dup)
+				return cfg.FindLastStackItem (block, current, isBarrier);
 			
-			InstructionBlock converged = null;
-			foreach (var predecessor in predecessors) {
-				var prospect = cfg.ConvergePredecessors (predecessor, preventCycles);
-				
-				if (converged == null)
-					converged = prospect;
-				else if (converged != prospect)
-					throw new Exception ("Help!");
-			}
-			
-			return converged;
+			return new Instruction [] { current };
 		}
-		*/
+		
 		public static IEnumerable<InstructionBlock> GetPredecessors (this ControlFlowGraph cfg, InstructionBlock ib)
 		{
 			return cfg.Blocks.Where (b => b.Successors.Contains (ib));
@@ -265,6 +236,13 @@ namespace Cirrus.Tools.Cilc.Util {
 			}
 			
 			return maxStack;
+		}
+		
+		public static IEnumerable<T> Collapse<T> (this IEnumerable<IEnumerable<T>> enumerable)
+		{
+			foreach (var subenumerable in enumerable)
+				foreach (var item in subenumerable)
+					yield return item;
 		}
 	}
 }

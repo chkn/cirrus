@@ -40,11 +40,6 @@ namespace Cirrus {
 	public static class FutureCompositors {
 		public static readonly FutureCompositor WaitAll = futures => futures.All (f => f.Status == FutureStatus.Fulfilled);
 		public static readonly FutureCompositor WaitAny = futures => futures.Any (f => f.Status == FutureStatus.Fulfilled);
-		public static FutureCompositor WaitSome (uint numberNeeded)
-		{
-			//FIXME: This could be more efficient
-			return futures => futures.Count (f => f.Status == FutureStatus.Fulfilled) >= numberNeeded;
-		}
 	}
 	
 	/// <summary>
@@ -78,23 +73,30 @@ namespace Cirrus {
 		/// <param name="compositor">
 		/// The <see cref="FutureCompositor"/> that will determine when this CompositeFuture is fulfilled.
 		/// </param>
-		public CompositeFuture (IEnumerable<Future> futures, FutureCompositor compositor) : base (true)
+		public CompositeFuture (IEnumerable<Future> futures, FutureCompositor compositor)
 		{
-			this.Futures = futures;	
+			this.Futures = futures;
 			this.Compositor = compositor;
+			
+			Thread.Current.ScheduleFiber (this);
 		}
 		
 		public override void Resume ()
 		{
-			base.Resume ();
+			CompositeFutureException cfe = null;
 			
-			// If any future aborts, then the composite is aborted with that exception. For now.
-			var aborted = Futures.FirstOrDefault (f => f.Status == FutureStatus.Aborted);
-			if (aborted != null) {
-				Exception = aborted.Exception;
-				return;
+			// If any future has an exception, then we handle that and throw it ourselves
+			foreach (var hotFuture in Futures.Where (f => f.Exception != null)) {
+				if (cfe == null) {
+					cfe = new CompositeFutureException (hotFuture.Exception);
+					Exception = cfe;
+				}
+				
+				cfe.innerExceptions.Add (hotFuture.Exception);
+				hotFuture.Status = FutureStatus.Handled;
 			}
-			
+				
+				
 			if (!Futures.Any () || Compositor (Futures))
 				Status = FutureStatus.Fulfilled;
 		}
@@ -108,6 +110,19 @@ namespace Cirrus {
 			Futures = Futures.Where (f => f.Status == FutureStatus.Pending);
 			Exception = null;
 			Status = FutureStatus.Pending;
+		}
+	}
+		
+	public class CompositeFutureException : Exception {
+		
+		public IEnumerable<Exception> InnerExceptions {
+			get { return innerExceptions; }
+		}
+		
+		internal List<Exception> innerExceptions = new List<Exception> ();
+		
+		internal CompositeFutureException (Exception first) : base ("An exception occurred in one or more constituent Future(s)", first)
+		{
 		}
 	}
 }

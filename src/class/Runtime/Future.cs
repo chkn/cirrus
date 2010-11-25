@@ -30,7 +30,18 @@ namespace Cirrus {
 	public enum FutureStatus {
 		Pending = 0,
 		Fulfilled = 1, //< If this value changes, must update TargetIL.cs
-		Aborted = -1
+		
+		PendingThrow = -3,
+		Throw = -2,
+		Handled = -1,
+	}
+	
+	public static class FutureStatusEx {
+		
+		public static bool IsAborted (this FutureStatus status)
+		{
+			return ((int)status) < 0;	
+		}
 	}
 	
 	/// <summary>
@@ -39,9 +50,11 @@ namespace Cirrus {
 	/// <remarks>
 	/// The Future is simply an indicator that can be set to indicate
 	/// that some expected state has come to pass. This could imply the completion of an
-	/// asynchronous operation or the raising of an event. A Future may also represent
-	/// a cooperative fiber or microthread if it is subclassed to contain code that will
-	/// run cooperatively at intervals in conjunction with other fibers.
+	/// asynchronous operation or the raising of an event.
+	/// 
+	/// <para>A Future may also represent a cooperative fiber or microthread if it is
+	/// subclassed to contain code that will run cooperatively at intervals in conjunction
+	/// with other fibers. To do this, override the <see cref="Resume()"/> method and call.</para>
 	/// 
 	/// When the operation or event a Future represents occurs, or the fiber it represents
 	/// terminates, the Future is said to be "fulfilled."  
@@ -61,7 +74,7 @@ namespace Cirrus {
 		/// If this is non-null, then the runtime should not schedule this Future's
 		/// Resume method for execution until on or after the specified time.
 		/// Accordingly, this property is only relevant for Future subclasses that
-		/// override the Resume method and pass True to the protected constructor.
+		/// override the Resume method and call Thread.ScheduleFiber.
 		/// </remarks>
 		public DateTime? WakeupTime { get; set; }
 		
@@ -69,42 +82,25 @@ namespace Cirrus {
 		/// The exception that occurred during the execution of this Future.
 		/// </summary>
 		/// <remarks>
-		/// If this Future's Status is FutureStatus.Aborted and this Future was aborted due to
-		/// an exception that was not caught during its execution, then this property
-		/// will reference that Exception object. Note that it may be possible for the
-		/// Future to be aborted for other reasons, in which case this property will be null.
+		/// If this Future's Status is FutureStatus.PendingThrow or FutureStatus.Throw, this property
+		/// will reference the Exception object.
 		/// </remarks>
 		public Exception Exception {
 			get { return exception; }
 			set {
 				exception = value;
 				if (value != null) 
-					Status = FutureStatus.Aborted;
+					Status = FutureStatus.PendingThrow;
 			}
 		}
 		private Exception exception;
 		
 		
 		/// <summary>
-		/// Creates a new, unfulfilled Future that will not schedule its Resume method for execution.
+		/// Creates a new, unfulfilled Future.
 		/// </summary>
-		public Future () : this (false)
+		public Future ()
 		{	
-		}
-		
-		/// <summary>
-		/// Creates a new, unfulfilled Future that will optionally schedule its Resume method for execution.
-		/// </summary>
-		/// <remarks>
-		/// Subclasses that wish to run code on each tick should override the Resume method and pass True for resumeImpl.
-		/// </remarks>
-		/// <param name="resumeImpl">
-		/// A value of True indicates that this Future subclass implements its Resume method and it should be scheduled for execution.
-		/// </param>
-		protected Future (bool resumeImpl)
-		{
-			if (resumeImpl)
-				Thread.fibers.Enqueue (this);	
 		}
 		
 		/// <summary>
@@ -128,19 +124,8 @@ namespace Cirrus {
 		/// This method is intended to be called by the runtime and should not normally
 		/// be called from user code.
 		/// </remarks>
-		/// <exception cref="InvalidOperationException">
-		/// Thrown if this Future is not in a resumable state (e.g. fulfilled or aborted).
-		/// </exception>
 		public virtual void Resume ()
-		{
-			switch (Status) {
-			
-			case FutureStatus.Aborted:
-				throw new InvalidOperationException ("This Future has been aborted");
-				
-			case FutureStatus.Fulfilled:
-				throw new InvalidOperationException ("This Future is fulfilled");
-			}
+		{	
 		}
 	}
 	
@@ -186,24 +171,10 @@ namespace Cirrus {
 		private T return_value;
 		
 		/// <summary>
-		/// Creates a new, unfulfilled Future&lt;T&gt; that will not schedule its Resume method for execution.
+		/// Creates a new, unfulfilled Future&lt;T&gt;.
 		/// </summary>
-		public Future () : this (false)
+		public Future ()
 		{	
-		}
-		
-		/// <summary>
-		/// Creates a new, unfulfilled Future&lt;T&gt; that will optionally schedule its Resume method for execution.
-		/// </summary>
-		/// <remarks>
-		/// Subclasses that wish to run code on each tick should override the Resume method and pass True for resumeImpl.
-		/// </remarks>
-		/// <param name="resumeImpl">
-		/// A value of True indicates that this Future&lt;T&gt; subclass implements its Resume method and it should be
-		/// scheduled for execution.
-		/// </param>
-		protected Future (bool resumeImpl) : base (resumeImpl)
-		{
 		}
 		
 		/// <summary>

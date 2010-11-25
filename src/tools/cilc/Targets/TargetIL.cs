@@ -111,9 +111,9 @@ namespace Cirrus.Tools.Cilc.Targets {
 			return transformed;
 		}
 		
-		public override void SaveOutput (ModuleDefinition module, string fileName)
+		public override void SaveOutput (ModuleDefinition module, string inputFileName)
 		{
-			module.Write (fileName);
+			module.Write (OutputName ?? inputFileName);
 		}
 		
 		public override void CreatePlatformExecutible (string name)
@@ -243,7 +243,6 @@ namespace Cirrus.Tools.Cilc.Targets {
 					var current = new List<Instruction> ();
 					int? opr = null;
 					MethodReference callee = null;
-					Instruction lastStack = null;
 					
 					switch (instruction.OpCode.Value) {
 					//1
@@ -264,11 +263,10 @@ namespace Cirrus.Tools.Cilc.Targets {
 						break;
 						
 					case -240 /*OpCodes.Starg_S*/:
-					case -501 /*OpCodes.Starg*/: 
-						opr = (int)instruction.Operand;
+					case -501 /*OpCodes.Starg*/: opr = (int)instruction.Operand;
 						
-						lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier);
-						coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
+						foreach (var lastStack in cfg.FindLastStackItem (block, instruction, IsBarrier))
+							coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
 						
 						current.Add (il.Create (OpCodes.Stfld, argsFields [opr.Value]));
 						HandleDups (coroutine, coroutineInstructions, instruction, current, argsFields [opr.Value].FieldType, ref dupLoc);
@@ -297,8 +295,9 @@ namespace Cirrus.Tools.Cilc.Targets {
 					case -243 /*OpCodes.Stloc_3*/: opr = 3; goto case -498;
 					case -237 /*OpCodes.Stloc_S*/:
 					case -498 /*OpCodes.Stloc*/:   opr = opr ?? ((VariableDefinition)instruction.Operand).Index;
-						lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier);
-						coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
+						
+						foreach (var lastStack in cfg.FindLastStackItem (block, instruction, IsBarrier))
+							coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
 						
 						current.Add (il.Create (OpCodes.Stfld, localsFields [opr.Value]));	
 						HandleDups (coroutine, coroutineInstructions, instruction, current, localsFields [opr.Value].FieldType, ref dupLoc);
@@ -310,14 +309,14 @@ namespace Cirrus.Tools.Cilc.Targets {
 							var setValueMethod = module.Import (typeof (Future<>).GetProperty ("Value").GetSetMethod (), returnType);
 							setValueMethod.DeclaringType = returnType;
 							
-							lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier);
-							coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
+							foreach (var lastStack in cfg.FindLastStackItem (block, instruction, IsBarrier))
+								coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
 							current.Add (il.Create (OpCodes.Call, setValueMethod));
 						} else {
 							var setStatusMethod = module.Import (typeof (Future).GetProperty ("Status").GetSetMethod ());
 							
-							lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier);
-							coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
+							foreach (var lastStack in cfg.FindLastStackItem (block, instruction, IsBarrier))
+								coroutineInstructions [lastStack].Insert (0, il.Create (OpCodes.Ldarg_0));
 							current.Add (il.Create (OpCodes.Pop));
 							current.Add (il.Create (OpCodes.Ldc_I4_1));
 							current.Add (il.Create (OpCodes.Call, setStatusMethod));
@@ -338,9 +337,10 @@ namespace Cirrus.Tools.Cilc.Targets {
 							// Normally, if MayThrow () throws an exception, GetSomeFuture () is not called. But because we're
 							// reordering, GetSomeFuture *is* called, the future is waited, and then MayThrow throws on the continuation.
 							
-							lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier); // this is the Future
+							//FIXME: Support multiple predecessors here!
+							var lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier).Single (); // this is the Future
 							// these are the items on the stack before the Future. they will be moved til after the continuation
-							var continuationInst = cfg.FindStackHeight (block, lastStack, 0, IsBarrier);
+							var continuationInst = cfg.FindStackHeight (block, lastStack, 0, IsBarrier).Single ();
 							
 							// emit this to setfld "chained"
 							// FIXME: Right now, we're depending on the C# compiler's behavior re. not separating arg0 from call
@@ -404,8 +404,8 @@ namespace Cirrus.Tools.Cilc.Targets {
 							current.Add (il.Create (OpCodes.Stloc, sleepLoc));
 							current.Add (il.Create (OpCodes.Ldloca, sleepLoc));
 							
-							lastStack = cfg.FindLastStackItem (block, instruction, IsBarrier);
-							coroutineInstructions [lastStack].InsertRange (0, current);
+							foreach (var lastStack in cfg.FindLastStackItem (block, instruction, IsBarrier))
+								coroutineInstructions [lastStack].InsertRange (0, current);
 							
 							current.Clear ();
 							current.Add (il.Create (OpCodes.Conv_R8));

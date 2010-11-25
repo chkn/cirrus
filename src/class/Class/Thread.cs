@@ -27,100 +27,181 @@ using System.Collections.Generic;
 
 namespace Cirrus {
 	
-	public static class Thread {
-		
-		[ThreadStatic]
-		internal static Queue<Future> fibers;
+	public sealed class Thread {
 		
 		// Fibers will be resumed immediately if their remaining sleep time
 		//  is less than this threshold
 		private static TimeSpan sleep_threshold = TimeSpan.FromMilliseconds (5);
 		
-		public static void Init ()
+		public static Thread Current {
+			get { 
+				if (current == null)
+					current = new Thread ();
+				return current;
+			}
+		}
+		
+		[ThreadStatic]
+		private static Thread current;
+		
+		
+		private Queue<Future> activeFibers; 
+		private LinkedList<Future> sleepingFibers;
+		
+
+		private Thread ()
 		{
-			fibers = new Queue<Future> ();	
+			activeFibers = new Queue<Future> ();
+			sleepingFibers = new LinkedList<Future> ();
+		}
+		
+		public void ScheduleFiber (Future fiber)
+		{
+			activeFibers.Enqueue (fiber);
 		}
 		
 		// Simple round-robin scheduler.
-		public static void RunLoop ()
+		public void RunLoop ()
 		{
 			TimeSpan sleepTime;
 			
 			while (RunSingleIteration (out sleepTime)) {
-				if (sleepTime.Ticks != 0)
+				if (sleepTime.Ticks > 0)
 					System.Threading.Thread.Sleep (sleepTime);
 			}
 		}
 		
 		// Returns false if there's no more stuff to do
-		public static bool RunSingleIteration (out TimeSpan sleepTime)
+		public bool RunSingleIteration (out TimeSpan sleepTime)
 		{
-			sleepTime = default (TimeSpan);
-			if (fibers.Count == 0)
-				return false;
+			Future fiber;
+			bool active = false;
+			var now = DateTime.Now;
 			
-			var current = fibers.Dequeue ();
-			switch (current.Status) {
+			// Figure out which fiber to resume...
+			if (!ShouldResume (now, out fiber, out sleepTime)) {
+
+				while (activeFibers.Count != 0) {
+					TimeSpan newSleepTime;
+					fiber = activeFibers.Dequeue ();
+					
+					if (ShouldSleep (now, fiber, out newSleepTime)) {
+						sleepTime = new TimeSpan (Math.Min (sleepTime.Ticks, newSleepTime.Ticks));
+					} else {
+						active = true;
+						break;
+					}
+				}
 				
+				if (!active)
+					return (sleepingFibers.Count != 0);
+			}
+			
+			sleepTime = default (TimeSpan);
+			
+			//*--------------------------------------*
+			
+			switch (fiber.Status) {
+			
 			case FutureStatus.Fulfilled:
+			case FutureStatus.Handled:
+				return true;
+			
+			case FutureStatus.PendingThrow:
+				fiber.Status = FutureStatus.Throw;
+				activeFibers.Enqueue (fiber);
 				return true;
 				
-			// case FutureStatus.Aborted:
-				//FIXME: Add exception handling magic here
-			}
-			
-			if (!CheckSleep (current, out sleepTime)) {
-				current.WakeupTime = null;
-				current.Resume ();
-			}
-			
-			fibers.Enqueue (current);
-			return true;
-		}
-		
-		// Returns true if the fiber should sleep, false if it should resume now
-		//  If return value is true, physicalSleepTime is the amt. of time (if any)
-		//  that the whole physical thread may sleep
-		// FIXME: More optimization
-		//  - What if a Future is chained on a sleeping Future?
-		//  - Keep track of sleeping fibers in a separate data structure to avoid looping through each fiber
-		private static bool CheckSleep (Future current, out TimeSpan physicalSleepTime)
-		{
-			physicalSleepTime = default (TimeSpan);
-			var currentWakeup = current.WakeupTime;
-			
-			// current fiber doesn't want to sleep
-			if (currentWakeup == null)
-				return false;
-			
-			var now = DateTime.Now;
-			var sleepTime = currentWakeup.Value.Subtract (now);
-			
-			// no more than sleep_threashold sleep time left
-			if (sleepTime.Subtract (sleep_threshold).Ticks <= 0)
-				return false;
-			
-			// current fiber wants to sleep... check to see if we can sleep the whole physical thread
-			foreach (var fiber in fibers) {
-				var wakeup = fiber.WakeupTime;
+			case FutureStatus.Throw:
+				throw fiber.Exception;
 				
-				// there is another fiber that is not sleeping.. do not sleep physical thread
-				if (wakeup == null)
-					return true;
-				
-				// there is another fiber that is sleeping for less time than this one. do not sleep physical thread (yet)
-				if (wakeup.Value < currentWakeup.Value)
-					return true;
 			}
 			
-			// sleep whole physical thread
-			physicalSleepTime = sleepTime;
+			// Resume fiber..
+			fiber.WakeupTime = null;
+			fiber.Resume ();
+			
+			activeFibers.Enqueue (fiber);	
 			return true;
 		}
 		
 		public static void Sleep (uint millis)
 		{
 			throw new NotSupportedException ("This operation requires the postcompiler");	
+		}
+		
+		private bool ShouldSleep (DateTime when, Future toSleep, out TimeSpan sleepTime)
+		{
+			sleepTime = default (TimeSpan);
+			
+			// We don't even want to sleep
+			if (toSleep.WakeupTime == null)
+				return false;
+			
+			var wakeupTime = toSleep.WakeupTime.Value;
+			sleepTime = wakeupTime.Subtract (when);
+			
+			// We're not sleeping long enough, don't bother.
+			if (sleepTime.Subtract (sleep_threshold).Ticks <= 0)
+				return false;
+			
+			// We gotta sleep... order the fiber in the sleeping list
+			
+			if (sleepingFibers.Count == 0) {
+				sleepingFibers.AddFirst (toSleep);
+				return true;
+			}
+			
+			if (wakeupTime <= sleepingFibers.First.Value.WakeupTime.Value) {
+				sleepingFibers.AddFirst (toSleep);
+				return true;
+			}
+			
+			var currentSleeper = sleepingFibers.Last;
+			
+			while (currentSleeper.Value.WakeupTime.Value > wakeupTime)
+				currentSleeper = currentSleeper.Previous;
+			
+			sleepingFibers.AddAfter (currentSleeper, toSleep);
+			return true;
+		}
+		
+		/// <summary>
+		/// Checks the list of sleeping fibers.
+		/// If one is ready to wake up, returns true and toResume will be set.
+		/// If none are ready, returns false and toSleep will be set.
+		/// </summary>
+		/// <param name="when">
+		/// Will check for fibers ready to resume at the given <see cref="DateTime"/>.
+		/// </param>
+		/// <param name="toResume">
+		/// The soonest <see cref="Future"/> to awaken.
+		/// </param>
+		/// <param name="toSleep">
+		/// A <see cref="TimeSpan"/> indicating how much time the soonest Fiber to awaken still has to sleep.
+		/// </param>
+		/// <returns>
+		/// A <see cref="System.Boolean"/> indicating whether to resume the Fiber output as the first argument.
+		/// </returns> 
+		private bool ShouldResume (DateTime when, out Future toResume, out TimeSpan toSleep)
+		{
+			toResume = default (Future);
+			toSleep = default (TimeSpan);
+			
+			if (sleepingFibers.First == null)
+				return false;
+			
+			toResume = sleepingFibers.First.Value;
+			
+			var wakeupTime = toResume.WakeupTime;
+			toSleep = wakeupTime.Value.Subtract (when);
+			
+			if (toSleep.Subtract (sleep_threshold).Ticks <= 0) {
+				sleepingFibers.RemoveFirst ();
+				return true;
+			}	
+				
+			return false;
 		}
 	}
 }

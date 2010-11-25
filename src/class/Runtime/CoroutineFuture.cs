@@ -36,27 +36,16 @@ namespace Cirrus {
 		protected Future chained;
 		protected int pc;
 		
-		public CoroutineFuture () : base (true)
+		public CoroutineFuture ()
 		{
+			Thread.Current.ScheduleFiber (this);
 		}
 		
 		public override void Resume ()
 		{
-			base.Resume ();
-			
-			if (chained != null) {
-				switch (chained.Status) {
-				
-				case FutureStatus.Aborted:
-					Status = FutureStatus.Aborted;
-					return;
-					
-				case FutureStatus.Pending:
-					return;
-					
-				}
-			}
-							
+			if (chained != null && chained.Status == FutureStatus.Pending)
+				return;
+
 			Coroutine ();
 		}
 		
@@ -74,27 +63,16 @@ namespace Cirrus {
 		protected Future chained;
 		protected int pc;
 		
-		public CoroutineFuture () : base (true)
+		public CoroutineFuture ()
 		{
+			Thread.Current.ScheduleFiber (this);
 		}
 		
 		public override void Resume ()
 		{
-			base.Resume ();
-			
-			if (chained != null) {
-				switch (chained.Status) {
-				
-				case FutureStatus.Aborted:
-					Status = FutureStatus.Aborted;
-					return;
-					
-				case FutureStatus.Pending:
-					return;
-					
-				}
-			}
-							
+			if (chained != null && chained.Status == FutureStatus.Pending)
+				return;
+
 			Coroutine ();
 		}
 		

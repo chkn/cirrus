@@ -33,7 +33,7 @@ namespace Cirrus {
 	/// An enumerator that provides asynchronous iteration over a collection of Future values.
 	/// </summary> 
 	/// <remarks>
-	/// This may be used with a foreach loop. The foreach loop will yield control to other
+	/// This enumerator may be used with a foreach loop. The foreach loop will yield control to other
 	/// fibers until a Future in the bound enumerable is Fulfilled. Then, it will perform
 	/// a single loop iteration given that Future's value.
 	/// </remarks>
@@ -48,11 +48,13 @@ namespace Cirrus {
 		/// <param name="boundEnumerable">
 		/// An <see cref="IEnumerable<Future<T>>"/> over which this AsyncEnumerator will iterate.
 		/// </param>
-		public AsyncEnumerator (IEnumerable<Future<T>> boundEnumerable) : base (true)
+		public AsyncEnumerator (IEnumerable<Future<T>> boundEnumerable)
 		{
 			this.items = new HashSet<Future<T>> (boundEnumerable);
 			this.total = items.Count;
 			this.position = 0;
+			
+			Thread.Current.ScheduleFiber (this);
 		}
 		
 		// In this case, calling get_Current is equivalent to calling Wait ()
@@ -61,7 +63,9 @@ namespace Cirrus {
 				throw new NotSupportedException ("This operation requires the postcompiler");
 			}
 		}
-
+		
+		// FIXME: We may need to reschedule this fiber if there was a continuation between
+		//  a get_Current and a MoveNext.
 		public bool MoveNext ()
 		{
 			if (position == total)
@@ -76,8 +80,6 @@ namespace Cirrus {
 		
 		public override void Resume ()
 		{
-			base.Resume ();
-			
 			var next = items.FirstOrDefault (f => f.Status == FutureStatus.Fulfilled);
 			if (next != null) {
 				items.Remove (next);
