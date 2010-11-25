@@ -113,7 +113,7 @@ namespace Cirrus.Tools.Cilc.Targets {
 		
 		public override void SaveOutput (ModuleDefinition module, string inputFileName)
 		{
-			module.Write (OutputName ?? inputFileName);
+			module.Write (/*OutputName ?? */inputFileName);
 		}
 		
 		public override void CreatePlatformExecutible (string name)
