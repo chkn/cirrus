@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Api>
+	<Type Name="System.Nullable`1">
+	
+		<Constructor Args="...">
+			<Invoke>{0}</Invoke>
+		</Constructor>
+	
+		<Property Name="HasValue">
+			<Get>!!({0})</Get>
+		</Property>
+
+		<Property Name="Value">
+			<Get>{0}</Get>
+		</Property>
+	
+	</Type>
+</Api>

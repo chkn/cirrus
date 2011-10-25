@@ -33,27 +33,29 @@ namespace Cirrus.Tools.Cilc {
 	static class MainClass {
 		
 		public static readonly Dictionary<string,Target> targets = new Dictionary<string, Target> () {
-			{ "il", new TargetIL () }
+			{ "il", new TargetIL () },
+			{ "js", new Pipeline () { new TargetIL (), new TargetJs () } }
 		};
 
 		public static Target target = targets ["il"];
 		public static string output = null;
+		public static bool debug = false;
 		
-		//public static int width = 0;
-		//public static int height = 0;
-		//public static string title = null;
+		public static List<string> references = new List<string> ();
 		
 		public static OptionSet Options = new OptionSet () {
 			
 			{ "h|?|help", "Show this message", v => { ShowHelp (Options); Environment.Exit (1); } },
+			{ "g|debug", "Generate debug-friendly output", v => debug = true },
 			{ "t=|target=", "Specifies the target of the output:\n" + 
-								"\tIL - output to an assembly of the same type as the input",
-				(string v) => {	target = targets [v.ToLower ()];	}
+								"\t\tIL - output to an assembly of the same type as the input\n" +
+								"\t\tJS - output to JavaScript",
+				v => { target = targets [v.ToLower ()];	}
 			},
-			{ "o=|output=", "Specifies the name of the output (type depends on target)", v => { output = v; } }/*,
-			{ "w=|width=", "Specifies the width of the main window", v => { width = int.Parse (v); } },
-			{ "h=|height=", "Specifies the height of the main window", v => { height = int.Parse (v); } },
-			{ "m=|maintitle=", "Specifies the title of the main window", v => { title = v; } }*/
+			{ "out=", "Specifies the name of the output (type depends on target)", v => { output = v; } },
+			{ "reference=|r=", "Additional reference assembly (Cirrus libraries and corlib are added by default)",
+				v => { references.Add (v); }
+			}
 		};
 		
 		public static int Main (string[] args)
@@ -62,25 +64,31 @@ namespace Cirrus.Tools.Cilc {
 			
 			try {
 				inputFiles = Options.Parse (args);
-			} catch (OptionException) {
-				System.Console.Error.WriteLine ("Try `{0} --help' for more information.", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
+			} catch (OptionException e) {
+				Console.Error.WriteLine (e.Message);
+				Console.Error.WriteLine ("Try `{0} --help' for more information.", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
 				return 1;
 			}
 			
 			if (inputFiles == null || inputFiles.Count == 0) {
-				System.Console.Error.WriteLine ("No input files specified.\nTry `{0} --help' for more information.", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
+				Console.Error.WriteLine ("No input files specified.\nTry `{0} --help' for more information.", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
 				return 1;
 			}
-				
+			
+			// add default reference assemblies
+			Api.Load ("default.api");
+			
+			target.OutputName = output;
+			target.Debug = debug;
+			target.References = references;
 			target.ProcessFiles (inputFiles);
-			//target.CreatePlatformExecutible ();
 			return 0;
 		}
 		
 		public static void ShowHelp (OptionSet opts)
 		{
-			System.Console.Error.WriteLine ("Cirrus IL post-Compiler (CILC), v0.1\nCopyright 2010 Alex Corrado.\n");
-			System.Console.Error.WriteLine ("Usage: {0} [options] assembly1 assembly2 ... assemblyN\n", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
+			Console.Error.WriteLine ("cilc: Cirrus IL post-Compiler, v0.1\nCopyright 2010 - 2011 Alex Corrado\n");
+			Console.Error.WriteLine ("Usage: {0} [options] assembly1 assembly2 ... assemblyN\n", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
 			opts.WriteOptionDescriptions (System.Console.Error);
 		}
 	}

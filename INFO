@@ -1,0 +1,62 @@
+Introduction
+============
+
+Cirrus is a highly-portable, highly-concurrent application framework.
+
+Highlights
+----------
+
++ Framework-level async methods:
+
+public static void Go ()
+{
+	Console.WriteLine ("Before...");
+	Future.MillisecondsFromNow (5000).Wait ();
+	Console.WriteLine ("After 5 seconds.");
+}
+
+
+Terminology
+-----------
+
++ coroutine : a method that can yield execution and later be resumed from where it left off. C# iterator methods using "yield return" are an example of coroutines. The Cirrus postcompiler also generates coroutines to implement async methods.
+
++ fiber : a lightweight, cooperative thread of execution. Fibers are usually implemented with coroutines, though they do not have to be. It is also important to note that the concept of a "fiber" is not inherently tied to any operating system API (such as Win32 fibers).
+
++ Future : a primitive type that represents a future state (Cirrus.Future) or value (Cirrus.Future<T>). When the state comes to pass and/or the value is available, the Future is said to be "fulfilled." Futures may represent the result of an entire thread of execution, or one of many fibers on a thread; consumers need not know how a Future is implemented to consume it.
+
+
+
+Design
+======
+
+The Build
+---------
+
+There are a few C# preprocessor defines that affect the compilation process:
+
++ NET_4_0 : Build for the .NET 4.0 profile (without this, the default target is 3.5).
++ RX : By default, Cirrus bundles its own versions of IObservable and IObserver unless NET_4_0 is defined. The RX flag also disables that behavior in case you want to link with the .NET 3.5 version of Reactive Extensions (which packages its own copies of those interfaces).
++ NO_LCG : A few parts of Cirrus use Expression.Compile or DynamicMethod to do lightweight code generation. This disables that. Currently only Future<T>.FromEvent is affected.
+
++ MONO_CONTINUATIONS : Coroutines will be implemented with Mono.Tasklets
++ FUTURE_AWAITABLE : Enables compatibility with C# 5 Async features (and associated VB features). This compiles extra code into the Future class that allows you to await a Cirrus Future from C# or VB.
+
+The Scheduler
+-------------
+(in Cirrus.Core- implementation shared between Thread.cs and Future.cs)
+
+Each Thread object maintains a doubly-linked list of Futures. Each Future knows how to schedule and unschedule itself, and may be scheduled to at most one thread. When a Future is scheduled to a thread, it becomes a fiber of that thread and is added to the list. Each Thread object maintains its own event loop, calling each scheduled Future's Resume method in a round-robin fashion. Note that the default implementation of Resume() is a no-op for Future and Future<T>. Only subclasses that override and implement this method should be scheduled, which is why Future.Schedule() and Future.Unschedule() are protected members.
+
+Schedule and Unschedule are thread-safe operations in Cirrus. The (un)scheduling algorithm uses a low-lock technique. This will enable multiple Futures to simultaneously schedule themselves from multiple source threads to a single target thread without too much contention. Low-lock algorithms are complex, so it is probably not 100% airtight yet. I continue to review it on a regular basis as development continues.
+
+Agents
+------
+
+An Agent provides an extra layer of encapsulation over a regular object. It is like an actor in the actor model of concurrency, but there are no channels or addresses. The Agent object itself encapsulates any necessary addresses to the remoted object and acts as a proxy. 
+
+Cilc role:
+
+When you 'cilc' an assembly, 
+
+

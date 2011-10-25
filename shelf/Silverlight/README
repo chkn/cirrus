@@ -1,0 +1,3 @@
+The Silverlight canvas currently in the Platform directory is based on SLCanvas (http://slcanvas.codeplex.com/). It works, but is less than ideal IMHO. Silverlight 5 appears to support immediate mode graphics, and I'd like to rework this implementation to use that when it is available.
+
+The WPF-based bootstrap is also being supplanted by a Direct2D-based solution.

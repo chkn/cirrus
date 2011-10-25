@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Api>
+	<Type Name="System.Object">
+	
+		<Constructor>
+			<Invoke>{{}}</Invoke>
+		</Constructor>
+		
+		<Method Name="Equals" Args="...">
+			<Invoke>{0}=={1}</Invoke>
+		</Method>
+
+		<Method Name="ToString">
+			<Invoke>{0}.toString()</Invoke>
+		</Method>
+		
+		<Method Name="ReferenceEquals" Args="System.Object,System.Object">
+			<Invoke>{0}==={1}</Invoke>
+		</Method>
+	
+	</Type>	
+</Api>

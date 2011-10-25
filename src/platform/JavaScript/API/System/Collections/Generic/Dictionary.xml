@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Api>
+	<Type Name="System.Collections.Generic.Dictionary`2">
+	
+		<Constructor>
+			<Invoke Lang="js">{{}}</Invoke>
+		</Constructor>
+		
+		<Method Name="Add" Args="...">
+			<Invoke Lang="js">{0}[{1}]={2}</Invoke>
+		</Method>
+		
+		<Method Name="Clear">
+			<Invoke Lang="js">{0}={{}}</Invoke>
+		</Method>
+
+		<Method Name="TryGetValue" Args="...">
+			<Invoke Lang="js">({2}={0}[{1}])</Invoke>
+		</Method>
+	
+	</Type>
+</Api>

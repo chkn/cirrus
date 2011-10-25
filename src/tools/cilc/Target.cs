@@ -33,11 +33,14 @@ namespace Cirrus.Tools.Cilc {
 		
 		public string MainAssembly { get; set; }
 		public string EntryPoint { get; set; }
+		public string OutputName { get; set; }
+		public IList<string> References { get; set; }
+		public bool Debug { get; set; }
 		
 		public virtual void ProcessFiles (IEnumerable<string> files)
 		{
 			foreach (var file in files) {
-				var module = ModuleDefinition.ReadModule (file);
+				var module = ModuleDefinition.ReadModule (file, new ReaderParameters { ReadSymbols = Debug });
 				if (ProcessModule (module))
 					SaveOutput (module, file);
 			}
@@ -66,6 +69,9 @@ namespace Cirrus.Tools.Cilc {
 			foreach (var method in type.Methods)
 				modified |= ProcessMethod (method);
 			
+			foreach (var nested in type.NestedTypes)
+				modified |= ProcessType (nested);
+			
 			return modified;
 		}
 		
@@ -85,8 +91,7 @@ namespace Cirrus.Tools.Cilc {
 		}
 		
 		
-		public abstract void CreatePlatformExecutible (string name);
-		public abstract void SaveOutput (ModuleDefinition module, string fileName);
+		public abstract void SaveOutput (ModuleDefinition module, string inputFileName);
 					                 
 		public class Error : Exception {
 			public string File { get; private set; }

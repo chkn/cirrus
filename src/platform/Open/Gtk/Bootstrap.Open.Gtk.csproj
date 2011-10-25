@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="3.5" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{C62066F7-DBE4-49F7-9CBF-FEAD864BC2C6}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Cirrus.Open</RootNamespace>
+    <AssemblyName>Bootstrap.Open.Gtk</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>3.5</OldToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <Commandlineparameters>/Users/alex/Projects/Cirrus/samples/ClockAnimation/bin/Debug/ClockAnimation.dll</Commandlineparameters>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="gtk-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="gdk-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="atk-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="System.Core">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="glib-sharp, Version=2.6.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="Mono.Cairo" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="GtkCanvas.cs" />
+    <Compile Include="CairoCanvas.cs" />
+    <Compile Include="CairoCanvasContext2D.cs" />
+    <Compile Include="PlatformGtk.cs" />
+    <Compile Include="GtkRoot.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Deployment.LinuxDeployData scriptName="cirrus" />
+        <GtkDesignInfo generateGettext="false" />
+      </Properties>
+    </MonoDevelop>
+  </ProjectExtensions>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\client\Cirrus.Client.csproj">
+      <Project>{67F63710-B4CB-4507-90C9-0987310A32A8}</Project>
+      <Name>Cirrus.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\core\Cirrus.Core.csproj">
+      <Project>{763602D7-0A29-4724-A0AA-D59783C5A6B1}</Project>
+      <Name>Cirrus.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

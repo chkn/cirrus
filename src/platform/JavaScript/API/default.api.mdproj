@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="3.5" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Default</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ItemType>GenericProject</ItemType>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{3FE047AB-94C8-4FB1-BB0D-1C9FD35E6E60}</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Default|AnyCPU' ">
+    <OutputPath>.</OutputPath>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="Build" command="cp -R src/platform/JavaScript/Platform/ src/tools/cilc/bin/Debug/default.api/" workingdir="${SolutionDir}" />
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="System\" />
+    <Folder Include="System\Collections\" />
+    <Folder Include="System\Collections\Generic\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="System\Console.xml" />
+    <None Include="System\DateTime.xml" />
+    <None Include="System\Nullable`1.xml" />
+    <None Include="System\Object.xml" />
+    <None Include="System\Collections\Generic\Dictionary.xml" />
+    <None Include="cirrus.core.xml" />
+    <None Include="cirrus.client.xml" />
+  </ItemGroup>
+</Project>

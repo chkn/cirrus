@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Api>
+	<Type Name="System.DateTime">
+		
+			<Property Name="Now">
+				<Get>new Date()</Get>
+			</Property>
+		
+			<Property Name="Second">
+				<Get>{0}.getSeconds()</Get>
+			</Property>
+			
+			<Property Name="Minute">
+				<Get>{0}.getMinutes()</Get>
+			</Property>
+			
+			<Property Name="Hour">
+				<Get>{0}.getHours()</Get>
+			</Property>
+		
+			<Method Name="AddMilliseconds" Args="System.Double">
+				<Invoke>{0}.setTime({0}.getTime()+{1})</Invoke>
+			</Method>
+	</Type>
+</Api>

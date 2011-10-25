@@ -1,0 +1,34 @@
+cilc
+====
+
++ Numerous items tagged "FIXME" throughout sources
+
++ Code clean up of AsyncMethodTransform.cs
+
++ Improve debug mode (-g or --debug flag passed on command line)
+	- Fix duplicate fields in coroutine classes for locals w/ same name in different scopes
+	- Make IDE debugging experience more pleasant
+	- Preserve exception stack traces (low pri)
+
++ Perform CIL optimizations on generated code (remove Nops, remove unnecessary fields, etc.)
+
+Cirrus.Core
+===========
+
++ Implement Future.FromTask (ifdef NET_4_0) and GetAwaiter, BeginAwait and EndAwait (ifdef FUTURE_AWAITABLE) 
+
++ Agents!
+
++ Tests!
+
+Platform Notes
+==============
+
+Built-in support for Vorbis and/or VP8 on all platforms (what about IE? - requires WebM IE pack?? or Safari Qt Pack??? maybe ?). Other codecs dependent on platform support -- Quicktime on Mac, Media Foundation on Win, HTML5 on Web, possibly GStreamer on *nix (check Banshee sources)
+
+
+Web Platform
+------------
+
+FF 4: Binary xhr can use mozResponseArrayBuffer and JS typed arrays
+

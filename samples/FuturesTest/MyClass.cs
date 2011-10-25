@@ -12,9 +12,8 @@ namespace FuturesTest {
 		
 		public static void Main ()
 		{
-			Thread.Init ();
-			Go (1500);
-			Thread.RunLoop ();
+			Go2 (10000);
+			Thread.Current.RunLoop ();
 		}
 		
 		public static Future Go (uint timeout)
@@ -62,7 +61,7 @@ namespace FuturesTest {
 			Future.ForAny (http, timeout).Wait ();
 			
 			if (http.Status == FutureStatus.Fulfilled)
-				return "Got response: " + http.Value.ResponseText.Substring (0, 25);
+				return "Got response from " + url + ": " + http.Value.ResponseText.Substring (0, 25);
 			else
 				return "Request timedout for " + url;
 		}

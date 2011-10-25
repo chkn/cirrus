@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="3.5" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{763602D7-0A29-4724-A0AA-D59783C5A6B1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Cirrus.Core</RootNamespace>
+    <AssemblyName>Cirrus.Core</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="mono src/tools/cilc/bin/Debug/cilc.exe ${TargetFile}" workingdir="${SolutionDir}" />
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Thread.cs" />
+    <Compile Include="Attributes.cs" />
+    <Compile Include="Agent\Agent.cs" />
+    <Compile Include="Agent\ThreadedAgent.cs" />
+    <Compile Include="Future\CompositeFuture.cs" />
+    <Compile Include="Future\Future.cs" />
+    <Compile Include="Future\CoroutineFuture.cs" />
+    <Compile Include="Future\FutureAdapters.cs" />
+    <Compile Include="Future\FutureCollection.cs" />
+    <Compile Include="Future\ProxyFuture.cs" />
+    <Compile Include="Future\TimeoutFuture.cs" />
+    <Compile Include="Compat\AggregateException.cs" />
+    <Compile Include="Compat\IObservable.cs" />
+    <Compile Include="Compat\IObserver.cs" />
+    <Compile Include="Future\FutureObservable.cs" />
+    <Compile Include="Future\FutureEventBridge.cs" />
+    <Compile Include="Future\FutureCancelledException.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>

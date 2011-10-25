@@ -10,11 +10,6 @@
     <RootNamespace>Cirrus.Tools.Cilc</RootNamespace>
     <AssemblyName>cilc</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
-    <OldToolsVersion>3.5</OldToolsVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,11 +20,11 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <Commandlineparameters>/Users/alex/Projects/Cirrus/samples/FuturesTest/bin/Debug/FuturesTest.exe</Commandlineparameters>
+    <Commandlineparameters>/Users/alex/Projects/Cirrus/src/core/bin/Debug/Cirrus.Core.dll</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -38,31 +33,49 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Core" />
     <Reference Include="Mono.Cecil, Version=0.9.4.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Mono.Cecil.dll</HintPath>
+      <HintPath>..\..\..\lib\cecil\Mono.Cecil.dll</HintPath>
     </Reference>
-    <Reference Include="System.Core" />
-    <Reference Include="Cecil.Decompiler, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Cecil.Decompiler.dll</HintPath>
-    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
-    <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Targets\TargetIL.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Target.cs" />
     <Compile Include="Util\OrderedDictionary.cs" />
     <Compile Include="Util\IOrderedDictionary.cs" />
     <Compile Include="Util\CecilHelpers.cs" />
+    <Compile Include="Targets\TargetCwp.cs" />
+    <Compile Include="Targets\Web\CwpWriter.cs" />
+    <Compile Include="Targets\Web\Tokens.cs" />
+    <Compile Include="Targets\Web\JsWriter.cs" />
+    <Compile Include="Targets\Web\Scope.cs" />
+    <Compile Include="Targets\Web\Token.cs" />
+    <Compile Include="Targets\DecompileTarget.cs" />
+    <Compile Include="Targets\TargetJs.cs" />
+    <Compile Include="Targets\Web\HandleGotos.cs" />
+    <Compile Include="Targets\Web\WebMethod.cs" />
+    <Compile Include="Targets\Web\WebType.cs" />
+    <Compile Include="Api.cs" />
+    <Compile Include="Implementation.cs" />
+    <Compile Include="Targets\IL\AsyncMethodTransform.cs" />
+    <Compile Include="Targets\IL\BaseInstructionTransform.cs" />
+    <Compile Include="Targets\Web\DecompilePipeline.cs" />
+    <Compile Include="Pipeline.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\..\class\Cirrus_Fibers.csproj">
-      <Project>{67F63710-B4CB-4507-90C9-0987310A32A8}</Project>
-      <Name>Cirrus_Fibers</Name>
+    <ProjectReference Include="..\..\core\Cirrus.Core.csproj">
+      <Project>{763602D7-0A29-4724-A0AA-D59783C5A6B1}</Project>
+      <Name>Cirrus.Core</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Targets\Web\Generators\Tokens.xslt" />
+    <None Include="Targets\Web\Tokens.xml" />
   </ItemGroup>
 </Project>

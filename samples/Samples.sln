@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClockAnimation", "ClockAnimation\ClockAnimation.csproj", "{53C98BB1-2921-43ED-9117-FF33D52F66E0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuturesTest", "FuturesTest\FuturesTest.csproj", "{267C949E-2A8A-4D0B-8369-A33B86458448}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BouncingBall", "BouncingBall\BouncingBall.csproj", "{EE5E5590-E8EB-40A6-90A1-4F6C64CF1839}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebTest", "WebTest\WebTest.csproj", "{D10E7402-4569-4C62-B396-6E1587CAA63A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{267C949E-2A8A-4D0B-8369-A33B86458448}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{267C949E-2A8A-4D0B-8369-A33B86458448}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{267C949E-2A8A-4D0B-8369-A33B86458448}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{267C949E-2A8A-4D0B-8369-A33B86458448}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53C98BB1-2921-43ED-9117-FF33D52F66E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53C98BB1-2921-43ED-9117-FF33D52F66E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53C98BB1-2921-43ED-9117-FF33D52F66E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53C98BB1-2921-43ED-9117-FF33D52F66E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D10E7402-4569-4C62-B396-6E1587CAA63A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D10E7402-4569-4C62-B396-6E1587CAA63A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D10E7402-4569-4C62-B396-6E1587CAA63A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D10E7402-4569-4C62-B396-6E1587CAA63A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE5E5590-E8EB-40A6-90A1-4F6C64CF1839}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE5E5590-E8EB-40A6-90A1-4F6C64CF1839}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE5E5590-E8EB-40A6-90A1-4F6C64CF1839}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE5E5590-E8EB-40A6-90A1-4F6C64CF1839}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = ClockAnimation\ClockAnimation.csproj
+	EndGlobalSection
+EndGlobal

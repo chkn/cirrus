@@ -22,7 +22,7 @@ namespace Cirrus.Tools.Cilc.Util
 
 		private static readonly string _keyTypeName = typeof(TKey).FullName;
 		private static readonly string _valueTypeName = typeof(TValue).FullName;
-		private static readonly bool _valueTypeIsReferenceType = !typeof(ValueType).IsAssignableFrom(typeof(TValue));
+		private static readonly bool _valueTypeIsReferenceType = !typeof(TValue).IsValueType;
 
 		private Dictionary<TKey, TValue> _dictionary;
 		private List<KeyValuePair<TKey, TValue>> _list;
@@ -308,6 +308,12 @@ namespace Cirrus.Tools.Cilc.Util
 			Dictionary.Add(key, value);
 			List.Add(new KeyValuePair<TKey,TValue>(key, value));
 			return Count - 1;
+		}
+		
+		public void AddRange (IDictionary<TKey, TValue> dict)
+		{
+			foreach (var kv in dict)
+				Add (kv.Key, kv.Value);
 		}
 
 		/// <summary>

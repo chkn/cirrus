@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Api>
+	
+	<Type Name="Cirrus.Platform" Options="Native" />
+	<Type Name="Cirrus.Gfx.ICanvas" Options="ChangeCase" />
+	<Type Name="Cirrus.Gfx.ICanvasContext2D" Options="ChangeCase">
+		<Property Name="LineCap">
+			<Get>Cirrus.Gfx.LineCap[{0}.lineCap]</Get>
+			<Set>{0}.lineCap=Cirrus.Gfx.LineCap[{1}]</Set>
+		</Property>
+		<Property Name="LineJoin">
+			<Get>Cirrus.Gfx.LineJoin[{0}.lineJoin]</Get>
+			<Set>{0}.lineJoin=Cirrus.Gfx.LineJoin[{1}]</Set>
+		</Property>
+	</Type>
+	<Type Name="Cirrus.Gfx.Color" Options="AnonymousObject" />
+	<Type Name="Cirrus.Web.Http" Options="Native" />
+	<Type Name="Cirrus.Web.Http/RequestArgs" Options="AnonymousObject" />
+	<Type Name="Cirrus.Web.Http/Response" Options="ChangeCase" />
+	
+</Api>
