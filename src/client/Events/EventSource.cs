@@ -8,19 +8,18 @@ using Cirrus;
 
 namespace Cirrus.Events {
 	
-	public interface IEventSource<TEvent> 
-		where TEvent : Event
+	public interface IEventSource<TEvent>
 	{
-		Future<TEvent> GetFuture ();
+		IObservable<TEvent> Observable { get; }
 	}
 	
 	public static class EventSource {
 		
 		/// <summary>
-		/// Get a Future for an event.
+		/// Get a Future representing the next event from an IEventSource.
 		/// </summary>
 		/// <example>
-		/// obj.On&lt;Click&gt; ().Wait ()
+		/// obj.OnNext&lt;Click&gt; ().Wait ()
 		/// </example>
 		/// <param name='source'>
 		/// The event source.
@@ -28,51 +27,29 @@ namespace Cirrus.Events {
 		/// <typeparam name='TEvent'>
 		/// The event type.
 		/// </typeparam>
-		public static Future<TEvent> On<TEvent> (this IEventSource<TEvent> source)
-			where TEvent : Event
+		public static Future<TEvent> OnNext<TEvent> (this IEventSource<TEvent> source)
 		{
-#if DEBUG
-			var evt = source.GetFuture ().Wait ();
-			evt.Log ();
-			return evt;
-#else
-			return source.GetFuture ();
-#endif
+			return source.Observable.Next ();
 		}
-		
-		public static void OnEvery<TEvent> (this IEventSource<TEvent> source, Action<TEvent> handler)
-			where TEvent : Event
+
+		/// <summary>
+		/// Adds a handler to be called when an event is raised.
+		/// </summary>
+		/// <param name='source'>
+		/// The event source.
+		/// </param>
+		/// <param name='handler'>
+		/// The handler delegate. It will be called every time the event is raised.
+		/// It should return True to continue receiving this event, or False to remove itself.
+		/// </param>
+		/// <typeparam name='TEvent'>
+		/// The event type.
+		/// </typeparam>
+		public static Future OnEvery<TEvent> (this IEventSource<TEvent> source, Func<TEvent,Future<bool>> handler)
 		{
-			while (true) {
-				var evt = source.GetFuture ().Wait ();
-				evt.Log ();
-				handler (evt);
-			}
-		}
-		
-		// Extra convenience for exposing events in Cirrus as Action<TEvent>
-		
-		public static void Fire<TEvent> (this Action<TEvent> handler, TEvent e)
-		{
-			var h = handler;
-			if (h != null)
-				h (e);
-		}
-		
-		public static Future<TEvent> ToFuture<TEvent> (this Action<TEvent> evt)
-		{
-			return Future<TEvent>.FromEvent<Action<TEvent>> (f => evt += f, f => evt -= f);
-		}
-	}
-	
-	public class Event {
-		
-		[Conditional ("DEBUG")]
-		public void Log ()
-		{
-#if DEBUG
-			Console.WriteLine (this);
-#endif
+			var observer = new ForEachObserver (handler);
+			source.Observable.Subscribe (observer);
+			return observer.IterationComplete;
 		}
 	}
 }

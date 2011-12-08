@@ -5,47 +5,103 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Cirrus {
-	public partial class Future<T> {
+using System.Reactive.Disposables;
+
+using Cirrus.Util;
+
+#if false
+namespace System.Reactive.Linq {
+
+	internal class SimpleObservable<T> : IObservable<T> {
+
+		List<IObserver<T>> observers;
+		public Action Retain, Release;
+
+		public void ForEachObserver (Action<IObserver<T>> action)
+		{
+			lock (observers) {
+				foreach (var observer in observers)
+					action (observer);
+			}
+		}
+
+		public IDisposable Subscribe (IObserver<T> observer)
+		{
+			lock (observers) {
+				if (Retain != null)
+					Retain ();
+				observers.Add (observer);
+			}
+			return Disposable.Create (() => {
+				lock (observers) {
+					observers.Remove (observer);
+					if (observers.Count == 0 && Release != null)
+						Release ();
+				}
+			});
+		}
+	}
+
+	public static class Observable {
 		
 		// Common Cases:
 		
-		public static Future<T> FromEvent (Action<EventHandler> addEventHandler, Action<EventHandler> removeEventHandler)
+		public static IObservable<EventArgs> FromEvent (Action<EventHandler> addEventHandler, Action<EventHandler> removeEventHandler)
 		{
-			var future = new Future<T> ();
-			
+			SimpleObservable<EventArgs> observable;
+			ToggleReference<SimpleObservable<EventArgs>> tref;
+			CreateObservable (out observable, out tref);
+
 			EventHandler handler = null;
-            handler = delegate (object sender, EventArgs args) {
-				removeEventHandler (handler);
-				future.Value = (T)(object)args;
+            handler = (object s, EventArgs args) => {
+				var obs = tref.Target;
+				if (obs == null)
+					removeEventHandler (handler);
+				obs.ForEachObserver (o => o.OnNext (args));
 			};
 
             addEventHandler (handler);
-			return future;
+			return observable;
 		}
-		
-		public static Future<T> FromEvent<TEvent> (Action<EventHandler<TEvent>> addEventHandler, Action<EventHandler<TEvent>> removeEventHandler)
-            where TEvent : EventArgs, T
+
+		public static IObservable<TEvent> FromEvent<TEvent> (Action<EventHandler<TEvent>> addEventHandler, Action<EventHandler<TEvent>> removeEventHandler)
+            where TEvent : EventArgs
 		{
-			var future = new Future<T> ();
+			SimpleObservable<TEvent> observable;
+			ToggleReference<SimpleObservable<TEvent>> tref;
+			CreateObservable (out observable, out tref);
 			
 			EventHandler<TEvent> handler = null;
-            handler = delegate (object sender, TEvent args) {
-				removeEventHandler (handler);
-				future.Value = args;
+            handler = (object sender, TEvent args) => {
+				var obs = tref.Target;
+				if (obs == null)
+					removeEventHandler (handler);
+				obs.ForEachObserver (o => o.OnNext (args));
 			};
 
             addEventHandler (handler);
-			return future;
+			return observable;
 		}
-		
+
+		public static IObservable<TEvent> FromEvent<TDelegate,TEvent> (Func<Action<TEvent>,TDelegate> conv, Action<TDelegate> addEventHandler, Action<TDelegate> removeEventHandler)
+		{
+			throw new NotImplementedException ();
+		}
+
+		static void CreateObservable<T> (out SimpleObservable<T> observable, out ToggleReference<SimpleObservable<T>> tref)
+		{
+			observable = new SimpleObservable<T> ();
+			tref = new ToggleReference<SimpleObservable<T>> (observable, false);
+			observable.Retain =()=> tref.IsReferenced = true;
+			observable.Release =()=> tref.IsReferenced = false;
+		}
+
 #if !NO_LCG
 		
 		// Type -> DynamicMethod
 		private static Dictionary<Type,WeakReference> event_bridge_cache = new Dictionary<Type,WeakReference> ();
-		
-		// Ex.. Future<FooEventArgs>.FromEvent (f => SomeObj.OnFoo += f, f => SomeObj.OnFoo -= f);
-		public static Future<T> FromEvent<TDel> (Action<TDel> addEventHandler, Action<TDel> removeEventHandler)
+
+		public static IObservable<TEventArgs> FromEvent<TDel,TEventArgs> (Action<TDel> addEventHandler, Action<TDel> removeEventHandler)
 			where TDel : class /* (Delegate) */
 		{
 			if (addEventHandler == null)
@@ -58,8 +114,6 @@ namespace Cirrus {
 			
 			if (event_bridge_cache.TryGetValue (typeof (TDel), out weakRef)) {
 				handler = weakRef.Target as DynamicMethod;
-				if (handler == null)
-					event_bridge_cache.Remove (typeof (TDel));
 			}
 			
 			if (handler == null) {
@@ -93,7 +147,7 @@ namespace Cirrus {
 				il.Emit (OpCodes.Call, FutureEventHandlerData<TDel>._future_SetValue);
 				
 				il.Emit (OpCodes.Ret);
-				event_bridge_cache.Add (typeof (TDel), new WeakReference (handler));
+				event_bridge_cache [typeof (TDel)] = new WeakReference (handler);
 			}
 			
 			var data = new FutureEventHandlerData<TDel> (handler, removeEventHandler);
@@ -128,4 +182,4 @@ namespace Cirrus {
 #endif // !NO_LCG
 	}
 }
-
+#endif //!RX

@@ -9,7 +9,6 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Cirrus.Core</RootNamespace>
     <AssemblyName>Cirrus.Core</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -51,11 +50,18 @@
     <Compile Include="Future\ProxyFuture.cs" />
     <Compile Include="Future\TimeoutFuture.cs" />
     <Compile Include="Compat\AggregateException.cs" />
+    <Compile Include="Future\FutureCancelledException.cs" />
+    <Compile Include="Future\ObserverFuture.cs" />
+    <Compile Include="Observable\FutureObservable.cs" />
+    <Compile Include="Observable\Observable.cs" />
+    <Compile Include="Compat\Disposable.cs" />
     <Compile Include="Compat\IObservable.cs" />
     <Compile Include="Compat\IObserver.cs" />
-    <Compile Include="Future\FutureObservable.cs" />
-    <Compile Include="Future\FutureEventBridge.cs" />
-    <Compile Include="Future\FutureCancelledException.cs" />
+    <Compile Include="Util\ToggleReference.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Folder Include="Observable\" />
+    <Folder Include="Util\" />
+  </ItemGroup>
 </Project>

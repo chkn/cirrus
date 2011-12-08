@@ -32,7 +32,7 @@ namespace Cirrus.Codec.Css {
 		{
 			T result;
 			if (!TryParse (cssExpr, out result))
-				throw new FormatException ("cssExpr");
+				throw new FormatException ("Expected " + typeof (T).Name);
 			
 			return result;
 		}

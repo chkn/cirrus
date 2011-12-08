@@ -4,7 +4,7 @@ using Cirrus.Gfx;
 
 namespace Cirrus.Events {
 	
-	public class VisualEvent : Event {
+	public class VisualEvent {
 		
 		// The new/current bounds
 		public BoundingRect Bounds { get; set; }

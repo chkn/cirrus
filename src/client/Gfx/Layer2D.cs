@@ -25,16 +25,14 @@ namespace Cirrus.Gfx {
 	// --visual events:
 		IEventSource<BoundsChange>
 	{
-		
-		// either set Renderer OR override Render method in a subclass
-		public Layer2DRenderer Renderer { get; set; }
-		private Future renderFiber;
-		
-		public BoundingRect Bounds { get; private set; }
-		
+
 		protected ICanvas Canvas { get; set; }
 		private bool transform;
-		
+		private Future renderFiber;
+
+		// either set Renderer OR override Render method in a subclass
+		public Layer2DRenderer Renderer { get; set; }
+		public BoundingRect Bounds { get; private set; }
 		public Layer2D Parent { get; private set; }
 		
 		// Scaling can be accomplished by either setting the ScaleX/ScaleY properties

@@ -44,15 +44,12 @@ namespace Cirrus.Codec.Css {
 			if (!types.TryGetValue (typeof (T), out type))
 				return null;
 			
-			return (CssType<T>)type;
+			return type as CssType<T>;
 		}
 		
 		public static void AddType<T> (CssType<T> type)
 		{
-			if (types.ContainsKey (typeof (T)))
-				types.Remove (typeof (T));
-			
-			types.Add (typeof (T), type);
+			types [typeof (T)] = type;
 		}
 		
 		public static T Parse<T> (string cssExpr)

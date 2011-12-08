@@ -28,7 +28,8 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Cirrus {
-	
+
+	// FIXME: implement IAsyncEnumerable
 	public partial class FutureCollection<T> : ICollection<Future<T>> {
 		// (the rest of this class in FutureObservable.cs)
 		

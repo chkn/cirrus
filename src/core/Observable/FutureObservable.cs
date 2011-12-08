@@ -25,20 +25,42 @@
 using System;
 
 namespace Cirrus {
-	
+
+	public static class IObservableExtensions {
+
+		/// <summary>
+		/// Returns a Future fulfilled by the next item returned by an IObservable.
+		/// </summary>
+		/// <remarks>
+		///  It is important to remember that a Future essentially represents a one-off event,
+		///   while an IObservable can represent a stream of many events. The Future returned by
+		///   this method will represent the next item of that stream. You would need to call
+		///   this method again after that Future is fulfilled to get subsequent items.
+		/// </remarks>
+		/// <returns>
+		/// The future.
+		/// </returns>
+		/// <param name='observable'>
+		/// Observable.
+		/// </param>
+		public static Future<T> Next<T> (this IObservable<T> observable)
+		{
+			return new ObserverFuture<T> (observable);
+		}
+	}
+
 	public partial class Future : IObservable<Future> {
 		
 		public virtual IDisposable Subscribe (IObserver<Future> observer)
 		{
-			return new FutureObserver (this, observer);
+			return new FutureRegistration (this, observer);
 		}
 		
-		private sealed class FutureObserver : IDisposable {
-		
-			// FIXME: Possibly make this volatile?
-			private bool disposed = false;
-			
-			public FutureObserver (Future future, IObserver<Future> observer)
+		private sealed class FutureRegistration : IDisposable {
+
+			private volatile bool disposed = false;
+
+			public FutureRegistration (Future future, IObserver<Future> observer)
 	        {
 	            try {
 					future.Wait ();
@@ -64,14 +86,14 @@ namespace Cirrus {
 	
 		public virtual IDisposable Subscribe (IObserver<T> observer)
 		{
-			return new FutureObserver<T> (this, observer);
+			return new FutureRegistration<T> (this, observer);
 		}
 		
-		private sealed class FutureObserver<T> : IDisposable {
+		private sealed class FutureRegistration<T> : IDisposable {
 		
-			private bool disposed = false;
+			private volatile bool disposed = false;
 
-			public FutureObserver (Future<T> future, IObserver<T> observer)
+			public FutureRegistration (Future<T> future, IObserver<T> observer)
 			{
 				try {
 					var result = future.Wait ();
@@ -107,7 +129,7 @@ namespace Cirrus {
 		}
 		
 		/// <summary>
-		/// Executes the specified iteration delegate when each constituent Future of this CompositeFuture is fulfilled.
+		/// Executes the specified iteration delegate as each constituent Future of this CompositeFuture is fulfilled.
 		/// </summary>
 		/// <remarks>
 		/// This methodperforms a "deep" enumeration of constituent Futures, meaning that if any are also CompositeFutures, or
@@ -159,7 +181,8 @@ namespace Cirrus {
 		/// <remarks>
 		/// This method performs a "deep" enumeration of constituent Futures, meaning that if any are also CompositeFutures, or
 		///  other types of Futures that represent more than one state or value, each Future will enumerate its constituents
-		///  as well. The iterator block may be an asynchronous method.
+		///  as well. Considering how readily such composite futures are created, this is almost always the desired behavior.
+		/// The iterator block may be an asynchronous method.
 		/// </remarks>
 		/// <returns>
 		/// A Future indicating the completion of iteration, either because all constituent Futures were iterated, or

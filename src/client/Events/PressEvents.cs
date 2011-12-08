@@ -3,7 +3,7 @@ using System;
 namespace Cirrus.Events {
 	
 	// FIXME: Things like which button was used (or finger for touch devices), xy position, etc..
-	public class MouseEvent : Event {
+	public class MouseEvent {
 		public double X { get; set; }
 		public double Y { get; set; }
 	}

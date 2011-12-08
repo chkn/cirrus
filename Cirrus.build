@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<!-- Cirrus NAnt Build Script -->
+<!-- Copyright 2011 Alexander Corrado -->
+
+<project name="Cirrus" default="default" basedir=".">
+	<description>Build the Cirrus RIA framework.</description>
+	
+	<!-- These properties may be set from the commandline with -D:name=value -->
+	<property name="configuration" value="Release" overwrite="false" /> <!-- "Release" or "Debug" -->
+	<property name="out" value="bin" overwrite="false" /> <!-- Build product output directory -->
+	
+	<!-- Default to .net on Windows, mono everywhere else -->
+	<property name="nant.settings.currentframework" value="net-3.5" if="${platform::is-win32()}" />
+	<property name="nant.settings.currentframework" value="mono-3.5" unless="${platform::is-win32()}" />
+
+	<!-- Setup (x/ms)build -->
+	<property name="xbuild" value="msbuild" if="${string::starts-with(nant.settings.currentframework, 'net')}" />
+	<property name="xbuild" value="xbuild" if="${string::starts-with(nant.settings.currentframework, 'mono')}" />
+	
+
+	
+	<target name="default" depends="core" description="default target is 'core'">
+		<echo>
+			NOTE: The default target builds Cirrus.Core.dll only.
+			(Use option '-projecthelp' for a list of targets)
+		</echo>
+	</target>
+	
+	<target name="core" depends="cilc" description="builds the Cirrus core library (Cirrus.Core.dll)">
+		<property name="dir" value="src/core" />
+		<property name="project" value="Cirrus.Core" />
+		<property name="type" value="dll" />
+		
+		<!-- Build csproj -->
+		<call target="build-project" />
+		
+		<!-- cilc it -->
+		
+	</target>
+	
+	<target name="cilc" description="builds the Cirrus IL postcompiler (cilc)">
+		<property name="dir" value="src/tools/cilc" />
+		<property name="project" value="cilc" />
+		<property name="type" value="exe" />
+		
+		<!-- Generate Sources -->
+		<style style="${dir}/Targets/Web/Generators/Tokens.xslt" in="${dir}/Targets/Web/Tokens.xml" out="${dir}/Targets/Web/Tokens.cs" />
+		
+		<!-- Build csproj -->
+		<call target="build-project" />
+		
+		<!-- Copy dependencies -->
+		<copy flatten="true" todir="${out}">
+			<fileset basedir="lib">
+				<include name="*/*.dll" />
+			</fileset>
+		</copy>
+
+		<!-- Copy default api -->
+		<copy todir="${out}/default.api">
+			<fileset basedir="src/platform/JavaScript/API">
+				<include name="**.xml" />
+			</fileset>
+		</copy>
+	</target>
+	
+	
+	<target name="clean" description="remove all generated files">
+		<delete>
+			<fileset>
+				<include name="${out}/*" />
+			</fileset>
+		</delete>
+	</target>
+
+	
+	<!-- Utility targets: -->
+	<target name="build-project">
+		<uptodate property="uptodate">
+			<sourcefiles>
+				<include name="${dir}/**/*.cs" />
+			</sourcefiles>
+			<targetfiles>
+				<include name="${out}/${project}.${type}" />
+			</targetfiles>
+		</uptodate>
+		
+		<exec program="${xbuild}" unless="${uptodate}">
+			<arg value="/property:Configuration=${configuration}" />
+			<arg file="${dir}/${project}.csproj" />
+		</exec>
+		<copy file="${dir}/bin/${configuration}/${project}.${type}" todir="${out}" unless="${uptodate}" />
+		
+		<echo message="${project} already up to date." if="${uptodate}" />
+	</target>
+</project>
