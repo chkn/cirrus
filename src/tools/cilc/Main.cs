@@ -33,8 +33,7 @@ namespace Cirrus.Tools.Cilc {
 	static class MainClass {
 		
 		public static readonly Dictionary<string,Target> targets = new Dictionary<string, Target> () {
-			{ "il", new TargetIL () },
-			{ "js", new Pipeline () { new TargetIL (), new TargetJs () } }
+			{ "il", new TargetIL () }
 		};
 
 		public static Target target = targets ["il"];
@@ -42,22 +41,25 @@ namespace Cirrus.Tools.Cilc {
 		public static bool debug = false;
 		
 		public static List<string> references = new List<string> ();
+		public static string coreLib;
 		
-		public static OptionSet Options = new OptionSet () {
-			
+		public static OptionSet Options = new OptionSet ()
+		{	
 			{ "h|?|help", "Show this message", v => { ShowHelp (Options); Environment.Exit (1); } },
 			{ "g|debug", "Generate debug-friendly output", v => debug = true },
 			{ "t=|target=", "Specifies the target of the output:\n" + 
-								"\t\tIL - output to an assembly of the same type as the input\n" +
-								"\t\tJS - output to JavaScript",
+								"\t\tIL - output to an assembly of the same type as the input\n",
 				v => { target = targets [v.ToLower ()];	}
 			},
 			{ "out=", "Specifies the name of the output (type depends on target)", v => { output = v; } },
 			{ "reference=|r=", "Additional reference assembly (Cirrus libraries and corlib are added by default)",
 				v => { references.Add (v); }
+			},
+			{ "core=|c=", "Specify the location of the Cirrus.Core assembly (by default, current directory)",
+				v => { coreLib = v; }
 			}
 		};
-		
+
 		public static int Main (string[] args)
 		{
 			List<string> inputFiles;
@@ -75,19 +77,24 @@ namespace Cirrus.Tools.Cilc {
 				return 1;
 			}
 			
-			// add default reference assemblies
-			Api.Load ("default.api");
-			
+			if (coreLib == null)
+				coreLib = Path.Combine (Environment.CurrentDirectory, "Cirrus.Core.dll");
+			if (!File.Exists (coreLib)) {
+				Console.Error.WriteLine ("Cirrus.Core.dll not found in current directory. Set the path with --core option.");
+				return 1;
+			}
+
 			target.OutputName = output;
 			target.Debug = debug;
 			target.References = references;
+			target.CoreAssembly = coreLib;
 			target.ProcessFiles (inputFiles);
 			return 0;
 		}
 		
 		public static void ShowHelp (OptionSet opts)
 		{
-			Console.Error.WriteLine ("cilc: Cirrus IL post-Compiler, v0.1\nCopyright 2010 - 2011 Alex Corrado\n");
+			Console.Error.WriteLine ("cilc: Cirrus IL post-Compiler, v0.2\nCopyright 2010 - 2012 Alex Corrado\n");
 			Console.Error.WriteLine ("Usage: {0} [options] assembly1 assembly2 ... assemblyN\n", Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]));
 			opts.WriteOptionDescriptions (System.Console.Error);
 		}

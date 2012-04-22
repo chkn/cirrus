@@ -42,7 +42,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 	public class AsyncMethodTransform : BaseInstructionTransform {
 		
 		private static uint asyncMethodID = 0;
-		
+		/*
 		private static readonly MethodBase isScheduled = typeof (Future).GetProperty ("IsScheduled", BindingFlags.Public | BindingFlags.Instance).GetGetMethod ();
 		private static readonly MethodBase schedule = typeof (Future).GetMethod ("Schedule", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type [] { typeof (Thread) }, null);
 		
@@ -55,7 +55,12 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		
 		private static readonly ConstructorInfo debuggerHidden = typeof (DebuggerHiddenAttribute).GetConstructor (Type.EmptyTypes);
 		private static readonly ConstructorInfo compilerGenerated = typeof (CompilerGeneratedAttribute).GetConstructor (Type.EmptyTypes);
+		*/
+
+		TypeDefinition future, coroutineFuture, coroutineFutureT;
+		MethodReference isScheduled, schedule, getException, setException, setStatus, setValue, getValue;
 		
+		protected AssemblyDefinition core;
 		protected ModuleDefinition module;
 		protected MethodDefinition method;
 		
@@ -65,6 +70,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		protected FieldReference [] argsFields, localsFields;
 		
 		protected bool debug;
+		
+		protected GenericInstanceType genType;
 		
 		// These references will vary depending on whether
 		//  the coroutine inherits from CoroutineFuture or CoroutineFuture<>	
@@ -100,18 +107,19 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			IsBarrier = IsContinuation;
 		}
 		
-		public static void Transform (MethodDefinition method, bool debuggable)
+		public static void Transform (MethodDefinition method, AssemblyDefinition core, bool debuggable)
 		{
-			(new AsyncMethodTransform (method, debuggable)).Execute ();
+			(new AsyncMethodTransform (method, core, debuggable)).Execute ();
 		}
 		
-		private AsyncMethodTransform (MethodDefinition method, bool debuggable)
+		private AsyncMethodTransform (MethodDefinition method, AssemblyDefinition core, bool debuggable)
 		{
 			this.method = method;
 			this.module = method.Module;
+			this.core  = core;
 			this.debug = debuggable;
 			VerifyTarget ();
-			
+
 			this.argsFields = new FieldReference [method.Parameters.Count + (method.HasThis? 1 : 0)];
 			this.localsFields = new FieldReference [method.Body.Variables.Count];
 			
@@ -133,6 +141,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		
 		public virtual void Execute ()
 		{
+			LoadReferences ();
 			CreateCoroutineType ();
 			coroutineType.BaseType = ImportBaseTypeReferences (coroutineType);
 			
@@ -150,7 +159,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			// finish constructor
 			var il = ctor.Body.GetILProcessor ();
 			il.Emit (OpCodes.Ldarg_0);
-			il.Emit (OpCodes.Call, coroutine);
+			il.Emit (OpCodes.Call, genType != null ? coroutine.MakeGeneric (genType) : coroutine);
 
 			il.Emit (OpCodes.Ret);
 			ctor.Body.ComputeOffsetsAndMaxStack ();
@@ -170,8 +179,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			
 			coroutineType = new TypeDefinition (null, futureName, Mono.Cecil.TypeAttributes.NestedPrivate | Mono.Cecil.TypeAttributes.Sealed | Mono.Cecil.TypeAttributes.BeforeFieldInit);
 			
-			if (debug)
-				coroutineType.CustomAttributes.Add (new CustomAttribute (module.Import (compilerGenerated)));
+			//if (debug)
+			//	coroutineType.CustomAttributes.Add (new CustomAttribute (module.Import (compilerGenerated)));
 			
 			// copy all generic parameters from method's containing type and method into new coroutinefuture type
 			for (i = 0; i < typeGeneric.Length; i++) {
@@ -190,8 +199,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 					methodGeneric [i].CustomAttributes.Add (attr);
 				coroutineType.GenericParameters.Add (methodGeneric [i]);
 			}
-			
-			GenericInstanceType genType = null;
+
 			if (typeGeneric.Length != 0 || methodGeneric.Length != 0) {
 				genType = new GenericInstanceType (coroutineType);
 				foreach (var genParam in coroutineType.GenericParameters)
@@ -239,6 +247,48 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				i++;
 			}
 		}
+		
+		protected virtual void LoadReferences ()
+		{
+			if (future != null)
+				return;
+
+			var i = 0;
+
+			future = core.MainModule.Types.SingleOrDefault (t => t.FullName == typeof (Cirrus.Future).FullName);
+			var futureT = core.MainModule.Types.SingleOrDefault (t => t.FullName == typeof (Cirrus.Future<>).FullName);
+			coroutineFuture = core.MainModule.Types.SingleOrDefault (t => t.FullName == typeof (Cirrus.CoroutineFuture).FullName);
+			coroutineFutureT = core.MainModule.Types.SingleOrDefault (t => t.FullName == typeof (Cirrus.CoroutineFuture<>).FullName);
+
+			if (future == null)
+				throw new Exception ("Could not load Cirrus.Future type from provided Cirrus.Core assembly");
+			
+			foreach (var method in future.Methods) {
+				switch (method.Name) {
+				case "get_IsScheduled": isScheduled = method; i++; break;
+				case "Schedule": if (method.HasParameters) { schedule = method; i++; } break;
+				case "get_Exception": getException = method; i++; break;
+				case "set_Exception": setException = method; i++; break;
+				case "set_Status": setStatus = method; i++; break;
+				}
+				if (i >= 5)
+					break;
+			}
+			if (i < 5)
+				throw new Exception ("Could not load all the references need from the Cirrus.Core assembly provided");
+			
+			i = 0;
+			foreach (var method in futureT.Methods) {
+				switch (method.Name) {
+				case "set_Value": setValue = method; i++; break;
+				case "get_Value": getValue = method; i++; break;
+				}
+				if (i >= 2)
+					break;
+			}
+			if (i < 2)
+				throw new Exception ("Could not load all the references need from the Cirrus.Core assembly provided");
+		}
 			
 		protected virtual TypeReference ImportBaseTypeReferences (TypeDefinition coroutineType)
 		{
@@ -248,27 +298,27 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			if (returnType.IsGenericInstance) { // async method returns Future<T>
 				
 				var futureValueType = ((GenericInstanceType)returnType).GenericArguments [0].CopyGeneric (coroutineType, skews);
-				baseType = module.Import (typeof (Cirrus.CoroutineFuture<>)).MakeGeneric (futureValueType);
+				baseType = module.Import (coroutineFutureT).MakeGeneric (futureValueType);
 				
-				baseCtor = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetConstructor (new Type [] {}), baseType);				
-				threadFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetField ("thread", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				chainedFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetField ("chained", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				pcFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetField ("pc", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				epcFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetField ("epc", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				chain = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetMethod ("Chain", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				checkException = module.ImportFrom (typeof (Cirrus.CoroutineFuture<>).GetMethod ("CheckException", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				
+				baseCtor = module.ImportFrom (coroutineFutureT.Methods.First (m => m.IsConstructor), baseType);
+				threadFld = module.ImportFrom (coroutineFutureT.Fields.First (f => f.Name == "thread"), baseType);
+				chainedFld = module.ImportFrom (coroutineFutureT.Fields.First (f => f.Name == "chained"), baseType);
+				pcFld = module.ImportFrom (coroutineFutureT.Fields.First (f => f.Name == "pc"), baseType);
+				epcFld = module.ImportFrom (coroutineFutureT.Fields.First (f => f.Name == "epc"), baseType);
+				chain = module.ImportFrom (coroutineFutureT.Methods.First (m => m.Name == "Chain"), baseType);
+				checkException = module.ImportFrom (coroutineFutureT.Methods.First (m => m.Name == "CheckException"), baseType);
+
 			} else { // returns Future or void...
 				
-				baseType = module.Import (typeof (Cirrus.CoroutineFuture));
-				
-				baseCtor = module.ImportFrom (typeof (Cirrus.CoroutineFuture).GetConstructor (new Type [] {}), baseType);
-				threadFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture).GetField ("thread", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				chainedFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture).GetField ("chained", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				pcFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture).GetField ("pc", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				epcFld = module.ImportFrom (typeof (Cirrus.CoroutineFuture).GetField ("epc", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				chain = module.Import (typeof (Cirrus.CoroutineFuture).GetMethod ("Chain", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
-				checkException = module.ImportFrom (typeof (Cirrus.CoroutineFuture).GetMethod ("CheckException", BindingFlags.Instance | BindingFlags.NonPublic), baseType);
+				baseType = module.Import (coroutineFuture);
+
+				baseCtor = module.ImportFrom (coroutineFuture.Methods.First (m => m.IsConstructor), baseType);
+				threadFld = module.ImportFrom (coroutineFuture.Fields.First (f => f.Name == "thread"), baseType);
+				chainedFld = module.ImportFrom (coroutineFuture.Fields.First (f => f.Name == "chained"), baseType);
+				pcFld = module.ImportFrom (coroutineFuture.Fields.First (f => f.Name == "pc"), baseType);
+				epcFld = module.ImportFrom (coroutineFuture.Fields.First (f => f.Name == "epc"), baseType);
+				chain = module.ImportFrom (coroutineFuture.Methods.First (m => m.Name == "Chain"), baseType);
+				checkException = module.ImportFrom (coroutineFuture.Methods.First (m => m.Name == "CheckException"), baseType);
 				
 			}
 			
@@ -279,11 +329,11 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		{
 			// create ctor
 			var ctor = new MethodDefinition (".ctor", Mono.Cecil.MethodAttributes.SpecialName | Mono.Cecil.MethodAttributes.RTSpecialName |
-			                                   Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Public, module.Import (typeof (void)));
-			
+			                                   Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Public, module.TypeSystem.Void);
+
 			// hide the ctor from the debugger if we're in debug mode
-			if (debug)
-				ctor.CustomAttributes.Add (new CustomAttribute (module.Import (debuggerHidden)));
+			//if (debug)
+			//	ctor.CustomAttributes.Add (new CustomAttribute (module.Import (debuggerHidden)));
 			
 			var il = ctor.Body.GetILProcessor ();
 			
@@ -309,7 +359,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		{
 			// create coroutine method
 			coroutine = new MethodDefinition ("Resume", Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Public |
-			                                      Mono.Cecil.MethodAttributes.Virtual, module.Import (typeof (void)));
+			                                      Mono.Cecil.MethodAttributes.Virtual, module.TypeSystem.Void);
 			
 			var il = coroutine.Body.GetILProcessor ();
 			
@@ -321,8 +371,11 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			//  5) Remove calls to Future<T>.op_Implicit preceeding Ret
 			Visit (method);
 			
+			// remap the jumps- pass 1 (required because exception handling extracts some of these)
+			MapAllInstructions (method.Body);
+			
 			// the whole body of the method must be an exception handler
-			var exceptionType = module.Import (typeof (Exception));
+			var exceptionType = module.Import (getException.ReturnType);
 			var exception = new VariableDefinition (exceptionType);
 			coroutine.Body.Variables.Add (exception);
 			
@@ -360,7 +413,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				};
 				
 				if (eh.HandlerType == ExceptionHandlerType.Finally) {
-					finallyMethod = new MethodDefinition ("$finally" + i, Mono.Cecil.MethodAttributes.Private, module.Import (typeof (void)));
+					finallyMethod = new MethodDefinition ("$finally" + i, Mono.Cecil.MethodAttributes.Private, module.TypeSystem.Void);
 					coroutineType.Methods.Add (finallyMethod);
 					clearEpc.Add (il.Create (OpCodes.Ldarg_0));
 					clearEpc.Add (il.Create (OpCodes.Call, finallyMethod));
@@ -371,9 +424,9 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				var lastHandler = method.Body.ExceptionHandlers.OrderBy (h => h.HandlerStart.Offset).LastOrDefault ((l, c) => l.HandlerEnd == c.HandlerStart, eh);
 				var subsequent = lastHandler.HandlerEnd;//InstructionMap [lastHandler.HandlerEnd].FirstOrDefault ();
 				//if (subsequent != null)
-					InstructionMap.Values.AsEnumerable ().Cast <IEnumerable<Instruction>> ().Flatten ().RedirectJumps (subsequent, clearEpc [0]);
+				InstructionMap.Values.AsEnumerable ().Cast <IEnumerable<Instruction>> ().Flatten ().RedirectJumps (subsequent, clearEpc [0]);
 				
-				
+
 				// extract the handler block
 				var handlerBody = ExtractInstructionRange (eh.HandlerStart, clearEpc [0]);
 				var block = new List<Instruction> ();
@@ -406,7 +459,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				block.Add (il.Create (OpCodes.Stfld, epcFld));
 				
 				switch (eh.HandlerType) {
-					
+
 				case ExceptionHandlerType.Catch:
 					
 					// guard by exception type (only if it's more specifc than System.Exception)
@@ -422,11 +475,12 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 					block.Add (skip);
 					catchBlocks.Add (block);
 					break;
-					
+
+				//FIXME: Finally blocks need to be surrounded in try..catch!
 				case ExceptionHandlerType.Finally:
 					
 					if (skipFinallyBlocks == null) {
-						skipFinallyBlocks = new VariableDefinition (module.Import (typeof (bool)));
+						skipFinallyBlocks = new VariableDefinition (module.TypeSystem.Boolean);
 						coroutine.Body.Variables.Add (skipFinallyBlocks);
 					}
 					
@@ -438,9 +492,12 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 					
 					// finalize our finally method
 					var fil = finallyMethod.Body.GetILProcessor ();
-					foreach (var inst in handlerBody)
+					foreach (var inst in handlerBody) {
 						fil.Append (inst);
-					
+						if (inst.OpCode == OpCodes.Dup && dupLoc != null)
+							finallyMethod.Body.Variables.Add (dupLoc);
+					}
+
 					block.Add (il.Create (OpCodes.Ldarg_0));
 					block.Add (il.Create (OpCodes.Call, finallyMethod));
 					block.Add (skip);
@@ -468,12 +525,93 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			jumpTable [0] = InstructionMap.First (kv => kv.Value.Count != 0).Value [0];
 			
 			// add mapped new instructions
-			MapAllInstructions (method.Body);
 			foreach (var ci in InstructionMap) {
 				foreach (var inst in ci.Value)
 					il.Append (inst);
 			}
 			
+			// create global catch/fault blocks
+			var ehFirst = il.Create (OpCodes.Nop);
+			il.Append (ehFirst);
+			
+			foreach (var block in catchBlocks)
+				foreach (var inst in block)
+					il.Append (inst);
+			
+			il.Emit (OpCodes.Stloc, exception);
+			il.Emit (OpCodes.Ldarg_0);
+			il.Emit (OpCodes.Ldloc, exception);
+			il.Emit (OpCodes.Call, module.Import (setException));
+			
+			// if method is void-returning, we gotta throw it
+			if (method.ReturnType.IsVoid ()) {
+				il.Emit (OpCodes.Ldloc, exception);
+				il.Emit (OpCodes.Throw);
+
+			}
+
+			il.Emit (OpCodes.Leave, ret);
+			
+			var globalEh = new ExceptionHandler (ExceptionHandlerType.Catch) {
+				CatchType = exceptionType,
+				TryStart = firstInst,
+				TryEnd = ehFirst,
+				HandlerStart = ehFirst
+			};
+			coroutine.Body.ExceptionHandlers.Add (globalEh);
+			
+			var catchEhFirst = il.Create (OpCodes.Stloc, exception);
+			
+			var catchEh = new ExceptionHandler (ExceptionHandlerType.Catch) {
+				CatchType = exceptionType,
+				TryStart = ehFirst,
+				TryEnd = catchEhFirst,
+				HandlerStart = catchEhFirst,
+			};
+			coroutine.Body.ExceptionHandlers.Add (catchEh);
+			
+			il.Append (catchEhFirst);
+			il.Emit (OpCodes.Ldarg_0);
+			il.Emit (OpCodes.Ldloc, exception);
+			il.Emit (OpCodes.Call, module.Import (setException));
+			
+			// if method is void-returning, we gotta throw it
+			if (method.ReturnType.IsVoid ()) {
+				il.Emit (OpCodes.Ldloc, exception);
+				il.Emit (OpCodes.Throw);
+
+			}
+			
+			il.Emit (OpCodes.Leave, ret);
+
+			if (finallyBlocks.Any ()) {
+				
+				ehFirst = il.Create (OpCodes.Ldloc, skipFinallyBlocks);
+				il.Append (ehFirst);
+				globalEh.HandlerEnd = ehFirst;
+				catchEh.HandlerEnd = ehFirst;
+
+				var endFinally = il.Create (OpCodes.Endfinally);
+				il.Emit (OpCodes.Brtrue, endFinally);
+				
+				foreach (var block in finallyBlocks)
+					foreach (var inst in block)
+						il.Append (inst);
+				
+				il.Append (endFinally);
+				globalEh = new ExceptionHandler (ExceptionHandlerType.Finally) {
+					TryStart = firstInst,
+					TryEnd = ehFirst,
+					HandlerStart = ehFirst
+				};
+				coroutine.Body.ExceptionHandlers.Add (globalEh);
+			} else {
+				catchEh.HandlerEnd = ret;
+			}
+
+			globalEh.HandlerEnd = ret;
+			il.Append (ret);
+
 			// add continuations
 			i = 1;
 			foreach (var continuation in continuations) {
@@ -495,54 +633,6 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				il.Replace (continuation, il.Create (OpCodes.Leave, ret));
 			}
 			il.InsertAfter (loadPC, il.Create (OpCodes.Switch, jumpTable));
-			
-			
-			// create global catch/fault blocks
-			var ehFirst = il.Create (OpCodes.Nop);
-			il.Append (ehFirst);
-			
-			foreach (var block in catchBlocks)
-				foreach (var inst in block)
-					il.Append (inst);
-			
-			il.Emit (OpCodes.Stloc, exception);
-			il.Emit (OpCodes.Ldarg_0);
-			il.Emit (OpCodes.Ldloc, exception);
-			il.Emit (OpCodes.Call, module.Import (setException));
-			il.Emit (OpCodes.Leave, ret);
-			
-			var globalEh = new ExceptionHandler (ExceptionHandlerType.Catch) {
-				CatchType = exceptionType,
-				TryStart = firstInst,
-				TryEnd = ehFirst,
-				HandlerStart = ehFirst
-			};
-			coroutine.Body.ExceptionHandlers.Add (globalEh);
-			
-			if (finallyBlocks.Any ()) {
-				
-				ehFirst = il.Create (OpCodes.Ldloc, skipFinallyBlocks);
-				il.Append (ehFirst);
-				globalEh.HandlerEnd = ehFirst;
-				
-				var endFinally = il.Create (OpCodes.Endfinally);
-				il.Emit (OpCodes.Brtrue, endFinally);
-				
-				foreach (var block in finallyBlocks)
-					foreach (var inst in block)
-						il.Append (inst);
-				
-				il.Append (endFinally);
-				globalEh = new ExceptionHandler (ExceptionHandlerType.Finally) {
-					TryStart = firstInst,
-					TryEnd = ehFirst,
-					HandlerStart = ehFirst
-				};
-				coroutine.Body.ExceptionHandlers.Add (globalEh);
-			}
-			
-			globalEh.HandlerEnd = ret;
-			il.Append (ret);
 			
 			coroutine.Body.InitLocals = true;
 			coroutine.Body.ComputeOffsetsAndMaxStack ();
@@ -570,8 +660,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			}
 			method.Body.Variables.Clear ();
 			
-			if (debug)
-				method.CustomAttributes.Add (new CustomAttribute (module.Import (debuggerHidden)));
+			//if (debug)
+			//	method.CustomAttributes.Add (new CustomAttribute (module.Import (debuggerHidden)));
 			
 			var il = method.Body.GetILProcessor ();
 			
@@ -624,7 +714,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		
 		public override IEnumerable<Instruction> OnLdarg (Instruction instruction)
 		{
-			return ImplementLdarg ((int)instruction.Operand);
+			var param = instruction.Operand as ParameterReference;
+			return ImplementLdarg (param != null ? method.IsStatic? param.Index : param.Index + 1 : (int)instruction.Operand);
 		}
 		
 		protected virtual IEnumerable<Instruction> ImplementLdarg (int opr)
@@ -639,7 +730,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		
 		public override IEnumerable<Instruction> OnLdarga (Instruction instruction)
 		{
-			return ImplementLdarga (((ParameterReference)instruction.Operand).Index);
+			var param = (ParameterReference)instruction.Operand;
+			return ImplementLdarga (method.IsStatic? param.Index : param.Index + 1);
 		}
 		
 		protected virtual IEnumerable<Instruction> ImplementLdarga (int opr)
@@ -654,7 +746,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		
 		public override IEnumerable<Instruction> OnStarg (Instruction instruction)
 		{
-			return ImplementStarg (instruction, (int)instruction.Operand);
+			var param = instruction.Operand as ParameterReference;
+			return ImplementStarg (instruction, param != null ? method.IsStatic? param.Index : param.Index + 1 : (int)instruction.Operand);
 		}
 		
 		protected virtual IEnumerable<Instruction> ImplementStarg (Instruction instruction, int opr)
@@ -774,6 +867,16 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		{
 			if (method.ReturnType.IsGenericInstance) {
 				InsertLdarg0BeforeLastStackItemAt (instruction);
+				
+				// FIXME: This is a bit shaky, but allows you to return a Future<T> as well as a T from the method
+				//  AND is an important fix for when we can't remove the op_Implicit when just returning a T
+				if (instruction.Previous.OpCode != OpCodes.Call || ((MethodReference)instruction.Previous.Operand).Name != "op_Implicit") {
+					//foreach (var inst in ImplementWait (instruction, method.ReturnType))
+					//	yield return inst;
+					// The above doesn't play nice with the InsertLdarg0BeforeLastStackItemAt call above
+					yield return Instruction.Create (OpCodes.Call, module.ImportFrom (getValue, method.ReturnType.CopyGeneric (coroutineType, skews)));
+				}
+
 				yield return Instruction.Create (OpCodes.Call, module.ImportFrom (setValue, method.ReturnType.CopyGeneric (coroutineType, skews)));
 				
 			} else {
@@ -892,7 +995,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			chainInstructions.Add (afterContinuation);
 			
 			// this is the instruction that will follow if the future is not faulted
-			var notFaulted = precontinuationStack != null ? precontinuationStack [0] : Instruction.Create (OpCodes.Nop);
+			var notFaulted = Instruction.Create (OpCodes.Nop);
 			
 			// check for exceptions
 			chainInstructions.Add (Instruction.Create (OpCodes.Call, checkException));
@@ -915,15 +1018,14 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				
 			// -- add continuation to InstructionMap
 			InstructionMap.Add (chainInstructions [0], chainInstructions);
-							
+
+			yield return notFaulted;
+
 			// move anything on the stack before the Wait to after the continuation
 			if (precontinuationStack != null) {
 				foreach (var inst in precontinuationStack)
 					yield return inst;
 			
-			} else {
-				
-				yield return notFaulted;
 			}
 			
 			// load the continuation result if there is one
@@ -977,7 +1079,19 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			instruction.Operand = FixTypeToken ((TypeReference)instruction.Operand);
 			return null;
 		}
-		
+
+		public override IEnumerable<Instruction> OnLdtoken (Instruction instruction)
+		{
+			instruction.Operand = FixTypeToken ((TypeReference)instruction.Operand);
+			return null;
+		}
+
+		public override IEnumerable<Instruction> OnUnbox_Any (Instruction instruction)
+		{
+			instruction.Operand = FixTypeToken ((TypeReference)instruction.Operand);
+			return null;
+		}
+
 		// -----
 		
 		// We are taking a method implementation and extracting it into its own class.
@@ -1010,7 +1124,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				yield break;
 			
 			if (dupLoc == null) {
-				dupLoc = new VariableDefinition (module.Import (typeof (object)));
+				dupLoc = new VariableDefinition (module.TypeSystem.Object);
 				coroutine.Body.Variables.Add (dupLoc);
 			}
 			

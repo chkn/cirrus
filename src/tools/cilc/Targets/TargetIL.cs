@@ -100,7 +100,7 @@ namespace Cirrus.Tools.Cilc.Targets {
 			
 			// Create Future implementation...
 			method.Body.SimplifyMacros ();
-			AsyncMethodTransform.Transform (method, Debug);
+			AsyncMethodTransform.Transform (method, core, Debug);
 			method.Body.OptimizeMacros ();
 		}
 		

@@ -32,58 +32,32 @@ using Cirrus.Events;
 namespace Cirrus.Gfx {
 	
 	//FIXME: Convert from Javadoc style to .net doc style
-	public class BoundingRect :
-		ICloneable,
-	// --events:
-		IEventSource<BoundsChange>
-	{
-		
+	public class BoundingRect : ICloneable {
+
+		public Event<BoundsChange> Change { get; private set; }
+
 		private double x;
 		public double X {
 			get { return x; }
-			set { 
-				if (value != x) {
-					var old = Clone ();
-					x = value;
-					FireBoundsChanged (old);
-				}
-			}
+			set { if (value != x) ChangeBounds (Clone (), x = value); }
 		}
 		
 		private double y;
 		public double Y {
 			get { return y; }
-			set {
-				if (value != y) {
-					var old = Clone ();
-					y = value;
-					FireBoundsChanged (old);
-				}
-			}
+			set { if (value != y) ChangeBounds (Clone (), y = value); }
 		}
 		
 		private double width;
 		public double Width {
 			get { return width; }
-			set {
-				if (value != width) {
-					var old = Clone ();
-					width = value;
-					FireBoundsChanged (old);
-				}
-			}
+			set { if (value != width) ChangeBounds (Clone (), width = value); }
 		}
 		
 		private double height;
 		public double Height {
 			get { return height; }
-			set {
-				if (value != height) {
-					var old = Clone ();
-					height = value;
-					FireBoundsChanged (old);
-				}
-			}
+			set { if (value != height) ChangeBounds (Clone (), height = value); }
 		}
 		
 		public double X2 {
@@ -95,7 +69,12 @@ namespace Cirrus.Gfx {
 			get { return Y + Height - 1; }
 			set { Height = value - Y + 1; }
 		}
-		
+
+		void ChangeBounds (BoundingRect old, double unused)
+		{
+			Change.Fire (new BoundsChange (old, this));
+		}
+
 		public BoundingRect Clone ()
 		{
 			return MemberwiseClone () as BoundingRect;
@@ -178,13 +157,15 @@ namespace Cirrus.Gfx {
 		public BoundsChange UpdateBounds (double X, double Y, double Width, double Height)
 		{
 			var old = Clone ();
-			
+
 			x = X;
 			y = Y;
 			width = Width;
 			height = Height;
-			
-			return FireBoundsChanged (old);
+
+			var evt = new BoundsChange (old, this);
+			Change.Fire (evt);
+			return evt;
 		}
 		
 		/**
@@ -343,19 +324,6 @@ namespace Cirrus.Gfx {
 			
 			return intersection;
 		}
-		
-		// events:
-		public event Action<BoundsChange> BoundsChanged;
-		private BoundsChange FireBoundsChanged (BoundingRect old)
-		{
-			var bc = new BoundsChange {
-				Bounds = this,
-				OldBounds = old
-			};
-			BoundsChanged.Fire (bc);
-			return bc;
-		}
-		Future<BoundsChange> IEventSource<BoundsChange>.GetFuture () { return BoundsChanged.ToFuture (); }
 	}
 }
 

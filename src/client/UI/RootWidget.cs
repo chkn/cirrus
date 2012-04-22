@@ -15,12 +15,13 @@ namespace Cirrus.UI {
 	/// </remarks>
 	public abstract class RootWidget : Widget {
 		
-		public RootWidget (ICanvas canvas)
-			: base (canvas)
+		public RootWidget (ISurface2d nativeSurface)
+			: base (nativeSurface)
 		{
 		}
 		
 		// deault implementation for click is based on mouse down, mouse up
+		/*
 		public override Future<Click> OnClick ()
 		{
 			OnMouseDown ().Wait ();
@@ -28,17 +29,7 @@ namespace Cirrus.UI {
 			
 			return new Click { X = evt.X, Y = evt.Y };
 		}
-		
-		// These events must be implemented by the platform :
-		
-		// visual:
-		public abstract override Future<BoundsChange> OnBoundsChange ();
-		
-		// mouse:
-		public abstract override Future<MouseMove> OnMouseMove ();
-		public abstract override Future<MouseDown> OnMouseDown ();
-		public abstract override Future<MouseUp> OnMouseUp ();
-
+		*/
 	}
 }
 

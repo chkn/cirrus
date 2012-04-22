@@ -142,16 +142,33 @@ namespace Cirrus {
 		public static Future<T> FromApm (Action<AsyncCallback> beginMethod, Func<IAsyncResult, T> endMethod)
 		{
 			var future = new Future<T> ();
-			
-			// We need to schedule this Future so that unhandled exceptions are dealt with..
-			future.Schedule ();
+
+			// Start async op..
+			try {
+				beginMethod (asyncResult => {
+					try { future.Value = endMethod (asyncResult); }
+					catch (Exception e) { future.Exception = e;   }
+				});
+			} catch (Exception e) {
+				future.Exception = e;
+			}
+
+			return future;
+		}
+		public static Future<T> FromApm (Func<AsyncCallback,object,IAsyncResult> beginMethod, Func<IAsyncResult, T> endMethod)
+		{
+			var future = new Future<T> ();
 			
 			// Start async op..
-			beginMethod (asyncResult => {
-				try { future.Value = endMethod (asyncResult); }
-				catch (Exception e) { future.Exception = e;   }
-			});
-			
+			try {
+				beginMethod (asyncResult => {
+					try { future.Value = endMethod (asyncResult); }
+					catch (Exception e) { future.Exception = e;   }
+				}, null);
+			} catch (Exception e) {
+				future.Exception = e;
+			}
+
 			return future;
 		}
 		

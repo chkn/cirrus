@@ -5,7 +5,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{763602D7-0A29-4724-A0AA-D59783C5A6B1}</ProjectGuid>
+    <ProjectGuid>{14E5D441-860D-4A62-8BF9-4290126960AA}</ProjectGuid>
+    <ProjectTypeGuids>{6BC8ED88-2882-458C-8E55-DFD12B67127B};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <RootNamespace>Cirrus.Core</RootNamespace>
     <AssemblyName>Cirrus.Core</AssemblyName>
@@ -14,7 +15,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\bin\Debug</OutputPath>
+    <OutputPath>..\..\bin\Debug\MonoTouch</OutputPath>
     <DefineConstants>DEBUG;NET_4_0</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -28,7 +29,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\bin\Release</OutputPath>
+    <OutputPath>..\..\bin\Release\MonoTouch</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -46,8 +47,6 @@
   <ItemGroup>
     <Compile Include="Thread.cs" />
     <Compile Include="Attributes.cs" />
-    <Compile Include="Agent\Agent.cs" />
-    <Compile Include="Agent\ThreadedAgent.cs" />
     <Compile Include="Future\CompositeFuture.cs" />
     <Compile Include="Future\Future.cs" />
     <Compile Include="Future\CoroutineFuture.cs" />

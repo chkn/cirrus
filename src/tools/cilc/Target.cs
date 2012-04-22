@@ -36,7 +36,13 @@ namespace Cirrus.Tools.Cilc {
 		public string OutputName { get; set; }
 		public IList<string> References { get; set; }
 		public bool Debug { get; set; }
-		
+
+		public string CoreAssembly {
+			set { core = AssemblyDefinition.ReadAssembly (value); }
+		}
+
+		protected AssemblyDefinition core;
+
 		public virtual void ProcessFiles (IEnumerable<string> files)
 		{
 			foreach (var file in files) {

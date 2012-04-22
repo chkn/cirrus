@@ -64,7 +64,7 @@ namespace Cirrus {
 						if (dispatch != null)
 							dispatch ();
 						
-					} catch (System.Threading.ThreadInterruptedException e) {
+					} catch (System.Threading.ThreadInterruptedException) {
 					}
 				}
 			}

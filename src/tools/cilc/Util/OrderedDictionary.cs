@@ -7,10 +7,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 
-namespace Cirrus.Tools.Cilc.Util
-{
+namespace Cirrus.Tools.Cilc.Util {
 	/// <summary>
 	/// Represents a generic collection of key/value pairs that are ordered independently of the key and value.
 	/// </summary>
@@ -149,16 +147,6 @@ namespace Cirrus.Tools.Cilc.Util
 			}
 		}
 
-		IDictionaryEnumerator IOrderedDictionary.GetEnumerator()
-		{
-			return Dictionary.GetEnumerator();
-		}
-
-		IDictionaryEnumerator IDictionary.GetEnumerator()
-		{
-			return Dictionary.GetEnumerator();
-		}
-
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return List.GetEnumerator();
@@ -187,28 +175,6 @@ namespace Cirrus.Tools.Cilc.Util
 
 			Dictionary.Add(key, value);
 			List.Insert(index, new KeyValuePair<TKey, TValue>(key, value));
-		}
-
-		/// <summary>
-		/// Inserts a new entry into the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection with the specified key and value at the specified index.
-		/// </summary>
-		/// <param name="index">The zero-based index at which the element should be inserted.</param>
-		/// <param name="key">The key of the entry to add.</param>
-		/// <param name="value">The value of the entry to add. The value can be <null/> if the type of the values in the dictionary is a reference type.</param>
-		/// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.<br/>
-		/// -or-<br/>
-		/// <paramref name="index"/> is greater than <see cref="Count"/>.</exception>
-		/// <exception cref="ArgumentNullException"><paramref name="key"/> is <null/>.<br/>
-		/// -or-<br/>
-		/// <paramref name="value"/> is <null/>, and the value type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is a value type.</exception>
-		/// <exception cref="ArgumentException">The key type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is not in the inheritance hierarchy of <paramref name="key"/>.<br/>
-		/// -or-<br/>
-		/// The value type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is not in the inheritance hierarchy of <paramref name="value"/>.<br/>
-		/// -or-<br/>
-		/// An element with the same key already exists in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see>.</exception>
-		void IOrderedDictionary.Insert(int index, object key, object value)
-		{
-			Insert(index, ConvertToKeyType(key), ConvertToValueType(value));
 		}
 
 		/// <summary>
@@ -257,29 +223,6 @@ namespace Cirrus.Tools.Cilc.Util
 		}
 
 		/// <summary>
-		/// Gets or sets the value at the specified index.
-		/// </summary>
-		/// <param name="index">The zero-based index of the value to get or set.</param>
-		/// <value>The value of the item at the specified index.</value>
-		/// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.<br/>
-		/// -or-<br/>
-		/// index is equal to or greater than <see cref="Count"/>.</exception>
-		/// <exception cref="ArgumentNullException"><paramref name="valueObject"/> is a null reference, and the value type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is a value type.</exception>
-		/// <exception cref="ArgumentException">The value type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is not in the inheritance hierarchy of <paramref name="valueObject"/>.</exception>
-		object IOrderedDictionary.this[int index]
-		{
-			get
-			{
-				return this[index];
-			}
-
-			set
-			{
-				this[index] = ConvertToValueType(value);
-			}
-		}
-
-		/// <summary>
 		/// Adds an entry with the specified key and value into the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection with the lowest available index.
 		/// </summary>
 		/// <param name="key">The key of the entry to add.</param>
@@ -317,22 +260,6 @@ namespace Cirrus.Tools.Cilc.Util
 		}
 
 		/// <summary>
-		/// Adds an entry with the specified key and value into the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection with the lowest available index.
-		/// </summary>
-		/// <param name="key">The key of the entry to add.</param>
-		/// <param name="value">The value of the entry to add. This value can be <null/>.</param>
-		/// <exception cref="ArgumentNullException"><paramref name="key"/> is <null/>.<br/>
-		/// -or-<br/>
-		/// <paramref name="value"/> is <null/>, and the value type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is a value type.</exception>
-		/// <exception cref="ArgumentException">The key type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is not in the inheritance hierarchy of <paramref name="key"/>.<br/>
-		/// -or-<br/>
-		/// The value type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is not in the inheritance hierarchy of <paramref name="value"/>.</exception>
-		void IDictionary.Add(object key, object value)
-		{
-			Add(ConvertToKeyType(key), ConvertToValueType(value));
-		}
-
-		/// <summary>
 		/// Removes all elements from the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.
 		/// </summary>
 		/// <remarks>The capacity is not changed as a result of calling this method.</remarks>
@@ -352,29 +279,6 @@ namespace Cirrus.Tools.Cilc.Util
 		{
 			return Dictionary.ContainsKey(key);
 		}
-		/// <summary>
-		/// Determines whether the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection contains a specific key.
-		/// </summary>
-		/// <param name="key">The key to locate in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.</param>
-		/// <returns><see langword="true"/> if the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection contains an element with the specified key; otherwise, <see langword="false"/>.</returns>
-		/// <exception cref="ArgumentNullException"><paramref name="key"/> is <null/></exception>
-		/// <exception cref="ArgumentException">The key type of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> is not in the inheritance hierarchy of <paramref name="key"/>.</exception>
-		bool IDictionary.Contains(object key)
-		{
-			return ContainsKey(ConvertToKeyType(key));
-		}
-
-		/// <summary>
-		/// Gets a value indicating whether the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> has a fixed size.
-		/// </summary>
-		/// <value><see langword="true"/> if the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> has a fixed size; otherwise, <see langword="false"/>. The default is <see langword="false"/>.</value>
-		bool IDictionary.IsFixedSize
-		{
-			get
-			{
-				return false;
-			}
-		}
 
 		/// <summary>
 		/// Gets a value indicating whether the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection is read-only.
@@ -389,19 +293,6 @@ namespace Cirrus.Tools.Cilc.Util
 			get
 			{
 				return false;
-			}
-		}
-
-		/// <summary>
-		/// Gets an <see cref="ICollection"/> object containing the keys in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see>.
-		/// </summary>
-		/// <value>An <see cref="ICollection"/> object containing the keys in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see>.</value>
-		/// <remarks>The returned <see cref="ICollection"/> object is not a static copy; instead, the collection refers back to the keys in the original <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see>. Therefore, changes to the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> continue to be reflected in the key collection.</remarks>
-		ICollection IDictionary.Keys
-		{
-			get
-			{
-				return (ICollection)Keys;
 			}
 		}
 
@@ -464,28 +355,6 @@ namespace Cirrus.Tools.Cilc.Util
 		}
 
 		/// <summary>
-		/// Removes the entry with the specified key from the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.
-		/// </summary>
-		/// <param name="key">The key of the entry to remove</param>
-		void IDictionary.Remove(object key)
-		{
-			Remove(ConvertToKeyType(key));
-		}
-
-		/// <summary>
-		/// Gets an <see cref="ICollection"/> object containing the values in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.
-		/// </summary>
-		/// <value>An <see cref="ICollection"/> object containing the values in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.</value>
-		/// <remarks>The returned <see cref="ICollection"/> object is not a static copy; instead, the <see cref="ICollection"/> refers back to the values in the original <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection. Therefore, changes to the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> continue to be reflected in the <see cref="ICollection"/>.</remarks>
-		ICollection IDictionary.Values
-		{
-			get
-			{
-				return (ICollection)Values;
-			}
-		}
-
-		/// <summary>
 		/// Gets or sets the value with the specified key.
 		/// </summary>
 		/// <param name="key">The key of the value to get or set.</param>
@@ -511,34 +380,6 @@ namespace Cirrus.Tools.Cilc.Util
 		}
 
 		/// <summary>
-		/// Gets or sets the value with the specified key.
-		/// </summary>
-		/// <param name="key">The key of the value to get or set.</param>
-		/// <value>The value associated with the specified key. If the specified key is not found, attempting to get it returns <null/>, and attempting to set it creates a new element using the specified key.</value>
-		object IDictionary.this[object key]
-		{
-			get
-			{
-				return this[ConvertToKeyType(key)];
-			}
-			set
-			{
-				this[ConvertToKeyType(key)] = ConvertToValueType(value);
-			}
-		}
-
-		/// <summary>
-		/// Copies the elements of the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> elements to a one-dimensional Array object at the specified index.
-		/// </summary>
-		/// <param name="array">The one-dimensional <see cref="Array"/> object that is the destination of the <see cref="T:KeyValuePair`2>"/> objects copied from the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see>. The <see cref="Array"/> must have zero-based indexing.</param>
-		/// <param name="index">The zero-based index in <paramref name="array"/> at which copying begins.</param>
-		/// <remarks>The <see cref="M:CopyTo"/> method preserves the order of the elements in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see></remarks>
-		void ICollection.CopyTo(Array array, int index)
-		{
-			((ICollection)List).CopyTo(array, index);
-		}
-
-		/// <summary>
 		/// Gets the number of key/values pairs contained in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.
 		/// </summary>
 		/// <value>The number of key/value pairs contained in the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> collection.</value>
@@ -547,33 +388,6 @@ namespace Cirrus.Tools.Cilc.Util
 			get
 			{
 				return List.Count;
-			}
-		}
-
-		/// <summary>
-		/// Gets a value indicating whether access to the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> object is synchronized (thread-safe).
-		/// </summary>
-		/// <value>This method always returns false.</value>
-		bool ICollection.IsSynchronized
-		{
-			get
-			{
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Gets an object that can be used to synchronize access to the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> object.
-		/// </summary>
-		/// <value>An object that can be used to synchronize access to the <see cref="OrderedDictionary{TKey,TValue}">OrderedDictionary&lt;TKey,TValue&gt;</see> object.</value>
-		object ICollection.SyncRoot
-		{
-			get
-			{
-				if(this._syncRoot == null)
-					System.Threading.Interlocked.CompareExchange(ref this._syncRoot, new object(), null);
-
-				return this._syncRoot;
 			}
 		}
 

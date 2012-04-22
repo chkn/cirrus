@@ -1,9 +1,8 @@
 using System;
-
 using Cirrus.Gfx;
 
 namespace Cirrus.Events {
-	
+
 	public class VisualEvent {
 		
 		// The new/current bounds
@@ -13,7 +12,13 @@ namespace Cirrus.Events {
 	public class BoundsChange : VisualEvent {
 		
 		public BoundingRect OldBounds { get; set; }
-		
+
+		public BoundsChange (BoundingRect old, BoundingRect current)
+		{
+			OldBounds = old;
+			Bounds = current;
+		}
+
 		public bool PositionChanged {
 			get { return OldBounds == null || !Bounds.SamePosition (OldBounds); }
 		}

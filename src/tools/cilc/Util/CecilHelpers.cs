@@ -47,8 +47,22 @@ namespace Cirrus.Tools.Cilc.Util {
 			
 			return imported;
 		}
+		public static MethodReference ImportFrom (this ModuleDefinition module, MethodReference method, TypeReference declaringType)
+		{
+			var imported = module.Import (method, declaringType);
+			imported.DeclaringType = declaringType;
+			
+			return imported;
+		}
 		
 		public static FieldReference ImportFrom (this ModuleDefinition module, FieldInfo field, TypeReference declaringType)
+		{
+			var imported = module.Import (field, declaringType);
+			imported.DeclaringType = declaringType;
+			
+			return imported;
+		}
+		public static FieldReference ImportFrom (this ModuleDefinition module, FieldReference field, TypeReference declaringType)
 		{
 			var imported = module.Import (field, declaringType);
 			imported.DeclaringType = declaringType;

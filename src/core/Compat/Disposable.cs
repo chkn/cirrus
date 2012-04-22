@@ -1,17 +1,23 @@
 using System;
+using System.Threading;
+using System.Collections.Generic;
 
 #if !RX
 namespace System.Reactive.Disposables {
 
 	internal sealed class DelegateDisposable : IDisposable {
-		Action onDispose;
-		public DelegateDisposable (Action onDispose)
+
+		Action dispose;
+
+		public DelegateDisposable (Action dispose)
 		{
-			this.onDispose = onDispose;
+			this.dispose = dispose;
 		}
 		public void Dispose ()
 		{
-			onDispose ();
+			var action = Interlocked.Exchange (ref dispose, null);
+			if (action != null)
+				action ();
 		}
 	}
 

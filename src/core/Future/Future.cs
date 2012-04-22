@@ -181,8 +181,8 @@ namespace Cirrus {
 		top:
 			actual = Interlocked.CompareExchange<Future> (ref this.previous, this, null);
 			if (actual != null)
-				throw new InvalidOperationException ("Future is already scheduled.");
-			
+				return; // already scheduled
+
 			// Scheduling algorithm:
 			// This must be done carefully, since other Futures may be concurrently (un)scheduling themselves
 			// from different threads.

@@ -1,7 +1,7 @@
 /*
-	TimeoutFuture.cs: A Future representing a set period of time
+	Bootstrap.cs: Cirrus Client Bootstrapper
   
-	Copyright (c) 2011 Alexander Corrado
+	Copyright (c) 2010-2011 Alexander Corrado
   
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,24 @@
  */
 
 using System;
-using Timer = System.Threading.Timer;
+using Cirrus.UI;
 
-namespace Cirrus
-{
-	public sealed class TimeoutFuture : Future
-	{
-		private Timer timer;
-		
-		public TimeoutFuture (uint millis)
+namespace Cirrus.Apple {
+
+	public class ApplePlatform : Platform {
+
+		public static void Main (string [] args)
 		{
-			timer = new Timer (this.Callback, null, millis, 0);
-			SupportsCancellation = true;
+			new ApplePlatform (args);
 		}
 
-		public override void Cancel ()
+		public ApplePlatform (string [] args)
+			: base (args)
 		{
-			timer.Dispose ();
-			base.Cancel ();
-		}
-
-		// This will occur on a different thread.
-		private void Callback (object @null)
-		{
-			timer.Dispose ();
-			timer = null;
-			this.Status = FutureStatus.Fulfilled;
+#if IPHONE
+#else
+		//	Root = new MonoMacRoot ();
+#endif
 		}
 	}
 }

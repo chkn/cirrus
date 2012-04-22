@@ -5,8 +5,8 @@
 
 using System;
 using Cirrus;
-using Cirrus.Web;
 using Cirrus.Gfx;
+using Cirrus.Gfx.Drawing;
 
 namespace Cirrus.Samples.ClockAnimation {
 	
