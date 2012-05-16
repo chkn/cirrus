@@ -154,11 +154,11 @@ namespace Cirrus {
 				if (chained.Exception != null) {
 					
 					if (this.Exception == null) {
-						this.Exception = new AggregateException (chained.Exception);
-						
+						this.Exception = new AggregateException (chained.Exception.Message + " and other errors", chained.Exception);
+
 					} else {
 						
-						var agg = new AggregateException (this.Exception, chained.Exception);
+						var agg = new AggregateException (this.Exception.Message, this.Exception, chained.Exception);
 						this.Exception = agg.Flatten ();
 					}
 					

@@ -110,8 +110,8 @@ namespace Cirrus {
 			}
 		}
 		private FutureStatus status;
-		internal ReaderWriterLockSlim status_lock = new ReaderWriterLockSlim ();
-		
+		internal ReaderWriterLockSlim status_lock = new ReaderWriterLockSlim (System.Threading.LockRecursionPolicy.SupportsRecursion);
+
 		/// <summary>
 		/// Raised when this Future will not execute further.
 		/// </summary>
