@@ -39,8 +39,11 @@ namespace Cirrus
 
 		public override void Cancel ()
 		{
-			timer.Dispose ();
-			base.Cancel ();
+			// if callback already happened, timer will be null
+			if (timer != null) {
+				timer.Dispose ();
+				base.Cancel ();
+			}
 		}
 
 		// This will occur on a different thread.
