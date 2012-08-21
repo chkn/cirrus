@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{7367659C-E34A-45A4-B2C2-1EE5DCCEA29F}</ProjectGuid>
+    <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Cirrus.Core</RootNamespace>
+    <AssemblyName>Cirrus.Core.MfA</AssemblyName>
+    <TargetFrameworkVersion>v2.1</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\bin\Debug\MonoAndroid</OutputPath>
+    <DefineConstants>DEBUG;NET_4_0</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="mono bin/${ProjectConfigName}/cilc.exe -g --core=${TargetFile} ${TargetFile}" workingdir="${SolutionDir}" />
+      </CustomCommands>
+    </CustomCommands>
+    <AndroidLinkMode>None</AndroidLinkMode>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\bin\Release\MonoAndroid</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="mono bin/${ProjectConfigName}/cilc.exe --core=${TargetFile} ${TargetFile}" workingdir="${SolutionDir}" />
+      </CustomCommands>
+    </CustomCommands>
+    <DefineConstants>NET_4_0</DefineConstants>
+    <AndroidLinkMode>SdkOnly</AndroidLinkMode>
+    <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Thread.cs" />
+    <Compile Include="Attributes.cs" />
+    <Compile Include="Future\CompositeFuture.cs" />
+    <Compile Include="Future\Future.cs" />
+    <Compile Include="Future\CoroutineFuture.cs" />
+    <Compile Include="Future\FutureAdapters.cs" />
+    <Compile Include="Future\FutureCollection.cs" />
+    <Compile Include="Future\ProxyFuture.cs" />
+    <Compile Include="Future\TimeoutFuture.cs" />
+    <Compile Include="Compat\AggregateException.cs" />
+    <Compile Include="Future\FutureCancelledException.cs" />
+    <Compile Include="Future\ObserverFuture.cs" />
+    <Compile Include="Observable\FutureObservable.cs" />
+    <Compile Include="Compat\Disposable.cs" />
+    <Compile Include="Compat\IObservable.cs" />
+    <Compile Include="Compat\IObserver.cs" />
+    <Compile Include="Extensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Observable\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
+</Project>
