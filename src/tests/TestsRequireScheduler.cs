@@ -27,7 +27,10 @@ namespace Cirrus.Test {
 			try {
 				while (!test_complete)
 					Cirrus.Thread.Current.RunSingleIteration ();
-				
+				// ensures we get all exceptions (requires an extra couple of times thru run loop after finally block)
+				Cirrus.Thread.Current.RunSingleIteration ();
+				Cirrus.Thread.Current.RunSingleIteration ();
+				Cirrus.Thread.Current.RunSingleIteration ();
 			} catch (AssertionException e) {
 				Debug.WriteLine ("Test failed: " + e.Message);
 				Debug.WriteLine (e.StackTrace);

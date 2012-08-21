@@ -36,16 +36,25 @@ using ReaderWriterLockSlim = System.Threading.ReaderWriterLockSlim;
 namespace Cirrus {
 	
 	public enum FutureStatus : short {
+
+		// This Future is not yet Fulfilled, but may yet become so
 		Pending = 0,
 		
-		// If any of the following values change, must update TargetIL.cs
+		// If any of the following values change, must update TargetIL.cs!
+
+		// This Future is Fulfilled. It has reached its desired end state.
 		Fulfilled =  1,
-		Cancelled = -1,
-		
+
+		// An Exception has occured, but the Future is pending a chance to handle it on the run loop
+		PendingThrow = -3,
+
+		// An Exception has occured and will not be handled by this Future
 		Throw = -2,
+
+		// An Exception has occured, but has been handled by a chained Future
 		Handled = -1,
-	}
-	
+	};
+
 	public static class FutureStatusEx {
 		
 		public static bool IsAborted (this FutureStatus status)
@@ -89,9 +98,9 @@ namespace Cirrus {
 				status_lock.EnterWriteLock ();
 				try {
 					if ((status == FutureStatus.Fulfilled && value != FutureStatus.Fulfilled) ||
-						(status == FutureStatus.Handled && value != FutureStatus.Handled)) // Handled and Cancelled have the same value
-						throw new InvalidOperationException ("Cannot change Status once it is Fulfilled, Handled, or Cancelled.");
-					
+						(status == FutureStatus.Handled && value != FutureStatus.Handled))
+						throw new InvalidOperationException ("Cannot change Status once it is Fulfilled or Handled.");
+
 					if ((value == FutureStatus.Fulfilled && status != FutureStatus.Fulfilled) || 
 					    (value == FutureStatus.Throw && status != FutureStatus.Throw)) {
 						
@@ -126,18 +135,22 @@ namespace Cirrus {
 		/// The exception that occurred during the execution of this Future.
 		/// </summary>
 		/// <remarks>
-		/// If this Future's Status is FutureStatus.Throw, this property
-		/// will reference the Exception object.
+		/// The base implementation of this property sets this instance's Status to FutureStatus.Throw.
+		/// This default behavior immediately causes the OnComplete event to fire, which schedules any chained
+		/// Futures that may wish to handle the exception. If a subclass wishes to have the first chance to handle
+		/// the exception, it must override this property and first set Status = FutureStatus.PendingThrow, and schedule
+		/// itself on the appropriate run loop before calling this base implementation.
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">If changing this property after it has been set.</exception>
-		public Exception Exception {
+		public virtual Exception Exception {
 			get { return exception; }
 			set {
-				if ((value == null && exception != null) || (exception != null && exception != value))
-					throw new InvalidOperationException ("Cannot change Exception once it is set.");
-					
+				if (exception == value)
+					return;
+
 				exception = value;
-				Status = FutureStatus.Throw;
+				if (Status != FutureStatus.PendingThrow)
+					Status = FutureStatus.Throw;
 			}
 		}
 		private Exception exception;
@@ -326,15 +339,10 @@ namespace Cirrus {
 		///  to offer the option to cancel this operation. A consumer may use the SupportsCancellation
 		///  property to determine if the Future offers this option.
 		/// <para/>
-		/// If cancellation is supported, calling this method sets the Future's status to Cancelled and throws a 
-		///  FutureCancelledException. If the Future is a coroutine (async method), the FutureCancelledException originates at the point
-		///  where it was suspended. This ensures that finally blocks run in async methods as expected and also affords the opportunity
-		///  to catch the exception if desired. If the exception is not caught within the async method, or the Future is not
-		///  a coroutine, the exception propagates to any fibers that are waiting on this Future. Since their completion
-		///  is dependent upon the cancelled Future, they must either catch the FutureCancelledException, or the unhandled exception
-		///  will be thrown on the run loop.
-		///  If, however, no fibers are waiting on the cancelled Future, its Exception property will still report a FutureCancelledException,
-		///  but no exception will be thrown from the run loop.
+		/// Coroutine Futures will call Cancel on any chained future and then cause a FutureCancelledException
+		///  to be thrown from the continuation point. This allows finally blocks to run as expected.
+		///  It may make sense for the coroutine to catch this exception depending on its semantic.
+		///   Otherwise, the exception will propagate to chained futures or be thrown from the run loop as usual.
 		/// <para/>
 		/// It is legal to call this method regardless of the status of this Future.
 		///  If it is not Pending, no action is taken.
@@ -344,8 +352,9 @@ namespace Cirrus {
 		///  if SupportsCancellation returns False. Otherwise, it performs the tasks necessary to set
 		///  this Future's status to Cancelled. If the specific subclass of Future must perform additional
 		///  tasks to, for example, cancel an ongoing operation, it should override this method and execute those tasks
-		///  before calling the base implementation. Implementors should also ensure that, if the task has already completed,
-		///  been faulted, or been canceled, subsequent calls to this method are no-ops.
+		///  BEFORE calling the base implementation. However, if the subclass is chained on another Future, it should simply
+		///  call that Future's Cancel method and NOT call its own base implementation. Implementors should also ensure that,
+		///  if the task has already completed, been faulted, or been canceled, subsequent calls to this method are no-ops.
 		/// </remarks>
 		/// <exception cref="NotSupportedException">
 		/// Is thrown when this Future does not support cancellation, as reported by the SupportsCancellation property.
@@ -358,8 +367,7 @@ namespace Cirrus {
 			if (Status != FutureStatus.Pending)
 				return;
 			
-			exception = new FutureCancelledException (this);
-			status = FutureStatus.Cancelled;
+			Exception = new FutureCancelledException (this);
 		}
 	}
 	

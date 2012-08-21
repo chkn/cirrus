@@ -1,8 +1,8 @@
 /*
-	TimeoutFuture.cs: A Future representing a set period of time
-  
-	Copyright (c) 2011 Alexander Corrado
-  
+	Extensions.cs: Extension methods
+
+	Copyright (c) 2012 Alexander Corrado
+
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
 	in the Software without restriction, including without limitation the rights
@@ -23,53 +23,20 @@
  */
 
 using System;
-using Timer = System.Threading.Timer;
+using System.Reflection;
 
-namespace Cirrus
-{
-	public sealed class TimeoutFuture : Future
-	{
-		volatile Timer timer;
+namespace Cirrus {
 
-		public TimeoutFuture (uint millis)
+	public static class Extensions {
+
+		static readonly FieldInfo RemoteStackTraceString = typeof (Exception).GetField ("_remoteStackTraceString", BindingFlags.Instance | BindingFlags.NonPublic);
+
+		public static void Rethrow (this Exception exception)
 		{
-			timer = new Timer (this.Callback, null, millis, 0);
-			SupportsCancellation = true;
-		}
-
-		public override void Cancel ()
-		{
-			if (timer == null)
-				return;
-
-			status_lock.EnterWriteLock ();
-			try {
-				if (timer == null)
-					return;
-
-				timer.Dispose ();
-				timer = null;
-				base.Cancel ();
-			} finally {
-				status_lock.ExitWriteLock ();
-			}
-		}
-
-		// This will occur on a different thread.
-		void Callback (object @null)
-		{
-			status_lock.EnterWriteLock ();
-			try {
-				if (timer == null)
-					return;
-
-				timer.Dispose ();
-				timer = null;
-				Status = FutureStatus.Fulfilled;
-
-			} finally {
-				status_lock.ExitWriteLock ();
-			}
+			// try a really hacky way to preserve some stack trace info
+			if (RemoteStackTraceString != null)
+				RemoteStackTraceString.SetValue (exception, exception.StackTrace);
+			throw exception;
 		}
 	}
 }

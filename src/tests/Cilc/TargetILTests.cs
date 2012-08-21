@@ -61,6 +61,24 @@ namespace Cirrus.Test.Cilc {
 			Thread.Yield ();
 			return Future.Fulfilled;
 		}
+
+		[Test]
+		public void TestCatchToTryToCatch ()
+		{
+			try {
+				try {
+					throw new Exception ();
+				} catch {
+				}
+				try {
+					Future.MillisecondsFromNow (0).Wait ();
+					throw new Exception ();
+				} catch {
+				}
+			} finally {
+				TestComplete ();
+			}
+		}
 		
 		[Test]
 		public void TestCanCatchPostflightExceptions ()

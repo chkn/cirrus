@@ -667,11 +667,16 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			} // foreach block
 		}
 		
-		protected virtual void MapInstructions (Mono.Cecil.Cil.MethodBody body, Instruction original, Instruction newInst)
+		protected virtual void MapInstructions (Instruction original, Instruction newInst)
 		{
 			// FIXME: Inefficient
-			//body.Instructions.RedirectJumps (original, newInst);
-			InstructionMap.Values.AsEnumerable ().Cast <IEnumerable<Instruction>> ().Flatten ().RedirectJumps (original, newInst);
+			var e = InstructionMap.Values.AsEnumerable ().Cast <IEnumerable<Instruction>> ().Flatten ();
+			e.RedirectJumps (original, newInst);
+
+			IList<Instruction> list;
+			if (InstructionMap.TryGetValue (original, out list) && list.Count > 0)
+				e.RedirectJumps (list [0], newInst);
+
 			newInst.SequencePoint = original.SequencePoint;
 		}
 		
@@ -683,14 +688,14 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				var list = InstructionMap [i];
 				
 				if (list.Count != 0 && list [0] != null && list [0] != key) {
-					MapInstructions (body, key, list [0]);
+					MapInstructions (key, list [0]);
 					
 				} else if (list.Count == 0) {
 					
 					for (var j = i; j < InstructionMap.Count; j++) {
 						
 						if (InstructionMap [j].Count != 0) {
-							MapInstructions (body, key, InstructionMap [j] [0]);
+							MapInstructions (key, InstructionMap [j] [0]);
 							break;
 						}
 					}
@@ -742,8 +747,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		{
 			var list = InstructionMap [oldInstruction];
 			if (list.Count != 0)
-				InstructionMap.Values.AsEnumerable ().Cast <IEnumerable<Instruction>> ().Flatten ().RedirectJumps (list [0], newInstructions [0]);
-			
+				MapInstructions (list [0], newInstructions [0]);
+
 			if (list.IsReadOnly)
 				list = new List<Instruction> (list);
 			

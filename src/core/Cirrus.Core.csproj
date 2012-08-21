@@ -62,6 +62,7 @@
     <Compile Include="Compat\Disposable.cs" />
     <Compile Include="Compat\IObservable.cs" />
     <Compile Include="Compat\IObserver.cs" />
+    <Compile Include="Extensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

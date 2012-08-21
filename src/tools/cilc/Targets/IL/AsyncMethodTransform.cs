@@ -42,20 +42,6 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 	public class AsyncMethodTransform : BaseInstructionTransform {
 		
 		private static uint asyncMethodID = 0;
-		/*
-		private static readonly MethodBase isScheduled = typeof (Future).GetProperty ("IsScheduled", BindingFlags.Public | BindingFlags.Instance).GetGetMethod ();
-		private static readonly MethodBase schedule = typeof (Future).GetMethod ("Schedule", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type [] { typeof (Thread) }, null);
-		
-		private static readonly MethodBase getException = typeof (Future).GetProperty ("Exception").GetGetMethod ();
-		private static readonly MethodBase setException = typeof (Future).GetProperty ("Exception").GetSetMethod ();
-		
-		private static readonly MethodBase setStatus = typeof (Future).GetProperty ("Status").GetSetMethod ();
-		private static readonly MethodBase setValue = typeof (Future<>).GetProperty ("Value").GetSetMethod ();
-		private static readonly MethodBase getValue = typeof (Future<>).GetProperty ("Value").GetGetMethod ();
-		
-		private static readonly ConstructorInfo debuggerHidden = typeof (DebuggerHiddenAttribute).GetConstructor (Type.EmptyTypes);
-		private static readonly ConstructorInfo compilerGenerated = typeof (CompilerGeneratedAttribute).GetConstructor (Type.EmptyTypes);
-		*/
 
 		TypeDefinition future, coroutineFuture, coroutineFutureT;
 		MethodReference isScheduled, schedule, getException, setException, setStatus, setValue, getValue;
@@ -424,8 +410,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				var lastHandler = method.Body.ExceptionHandlers.OrderBy (h => h.HandlerStart.Offset).LastOrDefault ((l, c) => l.HandlerEnd == c.HandlerStart, eh);
 				var subsequent = lastHandler.HandlerEnd;//InstructionMap [lastHandler.HandlerEnd].FirstOrDefault ();
 				//if (subsequent != null)
-				InstructionMap.Values.AsEnumerable ().Cast <IEnumerable<Instruction>> ().Flatten ().RedirectJumps (subsequent, clearEpc [0]);
-				
+				MapInstructions (subsequent, clearEpc [0]);
 
 				// extract the handler block
 				var handlerBody = ExtractInstructionRange (eh.HandlerStart, clearEpc [0]);
@@ -541,8 +526,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			il.Emit (OpCodes.Stloc, exception);
 			il.Emit (OpCodes.Ldarg_0);
 			il.Emit (OpCodes.Ldloc, exception);
-			il.Emit (OpCodes.Call, module.Import (setException));
-			
+			il.Emit (OpCodes.Callvirt, module.Import (setException));
+
 			// if method is void-returning, we gotta throw it
 			if (method.ReturnType.IsVoid ()) {
 				il.Emit (OpCodes.Ldloc, exception);
@@ -573,8 +558,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			il.Append (catchEhFirst);
 			il.Emit (OpCodes.Ldarg_0);
 			il.Emit (OpCodes.Ldloc, exception);
-			il.Emit (OpCodes.Call, module.Import (setException));
-			
+			il.Emit (OpCodes.Callvirt, module.Import (setException));
+
 			// if method is void-returning, we gotta throw it
 			if (method.ReturnType.IsVoid ()) {
 				il.Emit (OpCodes.Ldloc, exception);
@@ -619,7 +604,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 				var inst = il.Create (OpCodes.Ldarg_0);
 				
 				// FIXME: Not as efficient as possible.. since continuation is a Ret we inserted, we had to redir jumps to it previously
-				il.Body.Instructions.RedirectJumps (continuation, inst);
+				MapInstructions (continuation, inst);
 				
 				il.InsertBefore (continuation, inst);
 				il.InsertBefore (continuation, il.Create (OpCodes.Ldc_I4, i));
@@ -912,7 +897,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			if (!query.Any () || method.Body.ExceptionHandlers.Any (eh => eh.HandlerStart.Offset <= instruction.Offset && eh.HandlerEnd.Offset > instruction.Offset))
 				return null;
 			
-			MapInstructions (method.Body, instruction, (Instruction)instruction.Operand);
+			MapInstructions (instruction, (Instruction)instruction.Operand);
 			return new Instruction [0];
 		}
 		
@@ -1001,7 +986,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			chainInstructions.Add (Instruction.Create (OpCodes.Call, checkException));
 			chainInstructions.Add (Instruction.Create (OpCodes.Ldarg_0));
 			chainInstructions.Add (Instruction.Create (OpCodes.Ldfld, chainedFld));
-			chainInstructions.Add (Instruction.Create (OpCodes.Call, module.Import (getException)));
+			chainInstructions.Add (Instruction.Create (OpCodes.Callvirt, module.Import (getException)));
 			chainInstructions.Add (Instruction.Create (OpCodes.Brfalse, notFaulted));
 			
 			// mark exception as handled and throw it again right there
@@ -1010,7 +995,7 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			chainInstructions.Add (Instruction.Create (OpCodes.Dup));
 			chainInstructions.Add (Instruction.Create (OpCodes.Ldc_I4, -1));
 			chainInstructions.Add (Instruction.Create (OpCodes.Call, module.Import (setStatus)));
-			chainInstructions.Add (Instruction.Create (OpCodes.Call, module.Import (getException)));
+			chainInstructions.Add (Instruction.Create (OpCodes.Callvirt, module.Import (getException)));
 			chainInstructions.Add (Instruction.Create (OpCodes.Throw));
 			
 			// redirect jumps from our phony Wait call to the chain call.
@@ -1050,11 +1035,8 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 		{
 			var inst = Instruction.Create (OpCodes.Ret);
 			continuations.Add (inst);
-			
+
 			return new Instruction [] {
-				Instruction.Create (OpCodes.Ldarg_0),
-				Instruction.Create (OpCodes.Call, module.Import (isScheduled)),
-				Instruction.Create (OpCodes.Brtrue, inst),
 				Instruction.Create (OpCodes.Ldarg_0),
 				Instruction.Create (OpCodes.Ldarg_0),
 				Instruction.Create (OpCodes.Ldfld, threadFld),
@@ -1073,7 +1055,13 @@ namespace Cirrus.Tools.Cilc.Targets.IL {
 			instruction.Operand = FixTypeToken ((TypeReference)instruction.Operand);
 			return null;
 		}
-		
+
+		public override IEnumerable<Instruction> OnNewobj (Instruction instruction)
+		{
+			instruction.Operand = FixMethodToken ((MethodReference)instruction.Operand);
+			return null;
+		}
+
 		public override IEnumerable<Instruction> OnConstrained (Instruction instruction)
 		{
 			instruction.Operand = FixTypeToken ((TypeReference)instruction.Operand);

@@ -23,7 +23,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using Interlocked = System.Threading.Interlocked;
 
 #pragma warning disable 0420
@@ -43,7 +42,7 @@ namespace Cirrus {
 				return current;
 			}
 		}
-		
+
 		// See RunSingleIteration for reasons why current_fiber MUST be declared volatile.
 		internal volatile Future current_fiber;
 		
@@ -83,17 +82,18 @@ namespace Cirrus {
 			case FutureStatus.Handled:
 				fiber.Unschedule ();
 				goto next_fiber;
-			
-			//case FutureStatus.PendingThrow:
-			//	fiber.Status = FutureStatus.Throw;
-			//	goto next_fiber;
-				
+
+			case FutureStatus.PendingThrow:
+				fiber.Status = FutureStatus.Throw;
+				break;
+
 			case FutureStatus.Throw:
-				throw fiber.Exception;
+				fiber.Exception.Rethrow ();
+				break;
 			}
-			
+
 			fiber.Resume ();
-			
+
 		next_fiber:
 			// Only advance to fiber.Next if current_fiber == fiber
 			// This check is necessary because during fiber.Resume(),

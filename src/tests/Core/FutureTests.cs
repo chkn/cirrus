@@ -10,23 +10,50 @@ namespace Cirrus.Test.Core {
 	public class FutureTests : TestsRequireScheduler {
 		
 		[Test]
-		public void TestFutureCancelledExceptionInAsyncMethod ()
+		public void TestFutureCancelledException ()
 		{
-			var f = TestFutureCancelledExceptionInAsyncMethodAsync ();
+			var f = TestFutureCancelledExceptionAsync ();
 			f.Cancel ();
 		}
-		public Future TestFutureCancelledExceptionInAsyncMethodAsync ()
+		public Future TestFutureCancelledExceptionAsync ()
 		{
 			try {
 				try {
 					Thread.Yield ();
+					Assert.Fail ("#1");
 				}
-				catch (FutureCancelledException e) {
+				catch (FutureCancelledException) {
 					return Future.Fulfilled;
 				}
-				Assert.Fail ();
+				Assert.Fail ("#2");
 				return Future.Fulfilled;
 			} finally {
+				TestComplete ();
+			}
+		}
+
+		[Test]
+		public void TestFutureCancelledExceptionInChained ()
+		{
+			var f = TestFutureCancelledExceptionInChainedAsync ();
+			f.Cancel ();
+		}
+		public Future TestFutureCancelledExceptionInChainedAsync ()
+		{
+			var i = 0;
+			try {
+				try {
+					Future.MillisecondsFromNow (1000).Wait ();
+					Assert.Fail ("#2");
+				}
+				catch (FutureCancelledException) {
+					return Future.Fulfilled;
+				}
+				Assert.Fail ("#3");
+				return Future.Fulfilled;
+			} finally {
+				Assert.AreEqual (0, i, "#4");
+				i++;
 				TestComplete ();
 			}
 		}

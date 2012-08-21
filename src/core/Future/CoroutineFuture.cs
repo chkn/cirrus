@@ -75,16 +75,29 @@ namespace Cirrus {
 		
 		public override void Cancel ()
 		{
-			if (chained != null)
+			if (chained != null && chained.SupportsCancellation) {
 				chained.OnComplete -= Reschedule;
-			base.Cancel ();
+				chained.Cancel ();
+			} else {
+				base.Cancel ();
+			}
 			Schedule (thread);
 		}
-		
+
+		public override Exception Exception {
+			get { return base.Exception; }
+			set {
+				if (Status != FutureStatus.Throw)
+					Status = FutureStatus.PendingThrow;
+				Schedule (thread);
+				base.Exception = value;
+			}
+		}
+
 		protected void CheckException ()
 		{
 			if (this.Exception != null)
-				throw this.Exception;
+				this.Exception.Rethrow ();
 		}
 		
 		public abstract override void Resume ();
@@ -139,16 +152,29 @@ namespace Cirrus {
 		
 		public override void Cancel ()
 		{
-			if (chained != null)
+			if (chained != null && chained.SupportsCancellation) {
 				chained.OnComplete -= Reschedule;
-			base.Cancel ();
+				chained.Cancel ();
+			} else {
+				base.Cancel ();
+			}
 			Schedule (thread);
+		}
+
+		public override Exception Exception {
+			get { return base.Exception; }
+			set {
+				if (Status != FutureStatus.Throw)
+					Status = FutureStatus.PendingThrow;
+				Schedule (thread);
+				base.Exception = value;
+			}
 		}
 		
 		protected void CheckException ()
 		{
 			if (this.Exception != null)
-				throw this.Exception;
+				this.Exception.Rethrow ();
 		}
 		
 		public abstract override void Resume ();
